@@ -10,9 +10,10 @@ cp "$BIN_DIR/DesktopLEDs" "$APP_DIR/Contents/MacOS/DesktopLEDs"
 cp Resources/Info.plist "$APP_DIR/Contents/Info.plist"
 cp LICENSE THIRD_PARTY_NOTICES.md "$APP_DIR/Contents/Resources/"
 
-# TCC (Bluetooth and Screen Recording) identifies a signed application by its
-# team and bundle identifier. Ad-hoc signatures change with each build and make
-# macOS ask for the same permission repeatedly, so prefer a stable identity.
+# TCC (Bluetooth and Screen Recording) identifies an application by its team
+# and bundle identifier. An ad-hoc signature changes with each build, making
+# macOS ask for the same permission again. Direct builds therefore require a
+# stable Developer ID identity.
 SIGNING_IDENTITY="${CODE_SIGN_IDENTITY:-}"
 KEYCHAIN_PATH="${CODE_SIGN_KEYCHAIN:-}"
 if [[ -n "$KEYCHAIN_PATH" && -z "$SIGNING_IDENTITY" ]]; then
@@ -22,11 +23,14 @@ if [[ -n "$KEYCHAIN_PATH" && -z "$SIGNING_IDENTITY" ]]; then
   SIGNING_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -nE '/Developer ID Application/s/^[[:space:]]*[0-9]+\) ([0-9A-F]+).*/\1/p' | head -n 1)"
 fi
 if [[ -z "$SIGNING_IDENTITY" ]]; then
-  SIGNING_IDENTITY="-"
-  printf '%s\n' 'Warning: set CODE_SIGN_KEYCHAIN to use stable signing; ad-hoc builds may request permissions after every rebuild.' >&2
+  printf '%s\n' 'Set CODE_SIGN_IDENTITY and CODE_SIGN_KEYCHAIN to a stable Developer ID identity.' >&2
+  exit 1
 fi
 
-SIGN_COMMAND=(codesign --force --sign "$SIGNING_IDENTITY" --entitlements Resources/DesktopLEDs.entitlements)
+# This is a direct-distribution build. App Sandbox requires an App Store
+# provisioning profile, so its entitlements belong only in the separate
+# App Store packaging flow.
+SIGN_COMMAND=(codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY")
 if [[ -n "$KEYCHAIN_PATH" ]]; then
   SIGN_COMMAND+=(--keychain "$KEYCHAIN_PATH")
 fi

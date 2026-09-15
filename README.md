@@ -1,8 +1,8 @@
 # fs-desktop-leds
 
-Native macOS utility for controlling ELK-BLEDOM Bluetooth LED lights, with screen ambient lighting planned next.
+Native macOS utility for controlling ELK-BLEDOM Bluetooth LED lights and mirroring the primary display's average color.
 
-**Status:** macOS manual-control MVP implemented and locally buildable. Hardware response still needs validation on the target desk. Screen synchronization is not implemented yet.
+**Status:** macOS MVP implemented and locally buildable. The target desk responds through the alternate ELK-BLEDOM protocol.
 
 ## First MVP
 
@@ -18,7 +18,7 @@ Initial test hardware: an Apple Silicon M3 MacBook Pro and a standing desk whose
 
 - Swift and SwiftUI for the macOS application.
 - CoreBluetooth for Bluetooth Low Energy communication.
-- ScreenCaptureKit for the future screen synchronization feature.
+- ScreenCaptureKit for screen synchronization.
 
 Keep the Bluetooth protocol, device connection, and interface separate. Linux support is a future goal; no Rust or Qt dependency is required for the macOS MVP.
 
@@ -30,7 +30,6 @@ The app-level control vocabulary is deliberately small: power, RGB color, and br
 
 ## Next: screen ambient lighting
 
-- Read monitor arrangement from macOS automatically.
 - Support selecting displays or regions and handle display configuration changes.
 - Analyze small frames at a bounded rate, smooth color transitions, and limit Bluetooth updates.
 - Pause capture when synchronization is disabled or the lights are disconnected.
@@ -40,9 +39,9 @@ Treat the desk strip as one RGB zone until hardware testing establishes otherwis
 
 ### Ambient mode
 
-Ambient mode uses ScreenCaptureKit and automatically includes every active display exposed by macOS. One display produces one sample; multiple displays are captured independently and their average colors are weighted by display area. `SCDisplay.frame` and `displayID` are retained by the capture layer, so a later placement-aware feature can use the existing macOS layout without changing the Bluetooth or driver layers.
+Ambient mode uses ScreenCaptureKit and captures only the primary display selected by macOS. It reduces that display to one color. The capture layer retains `displayID`, and the mixer remains independent of ScreenCaptureKit so a later placement-aware multi-display mode can be added without changing Bluetooth drivers.
 
-Capture is deliberately bounded: each display is scaled to 64 pixels wide, sampled at most at 5 fps, has a queue depth of 3, and never captures audio. The mixer smooths scene transitions, ignores imperceptibly small RGB differences, and outputs at most 5 Bluetooth updates per second. It stops when the toggle is disabled or the light disconnects.
+Capture is deliberately bounded: the display is scaled to 64 pixels wide, sampled at most at 5 fps, has a queue depth of 3, and never captures audio. The mixer moves 20% toward the sampled color per frame, ignores imperceptibly small RGB differences, and outputs at most 5 Bluetooth updates per second. It stops when the toggle is disabled or the light disconnects.
 
 The first activation requires macOS Screen Recording permission. If macOS asks, grant it to Desktop LEDs; if it was previously denied, the Ambient section provides **Abrir ajustes de Grabación de pantalla**. Enable Desktop LEDs there, then quit and reopen the app before activating Ambient again. The implementation does not record, save, upload, or transmit screen images. It reduces each frame locally to one color and discards the pixels immediately.
 
@@ -59,10 +58,12 @@ open "build/Desktop LEDs.app"
 The script builds an optimized release executable and packages it as a native `.app`. To preserve Bluetooth and Screen Recording permission across rebuilds, sign with a stable Developer ID identity and its exact keychain:
 
 ```sh
-CODE_SIGN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db" bash scripts/build-app.sh
+CODE_SIGN_IDENTITY="Developer ID Application: Daniel Lares (8VF4WQL462)" \\
+CODE_SIGN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db" \\
+bash scripts/build-app.sh
 ```
 
-The script selects a Developer ID certificate from that keychain by fingerprint. It falls back to ad-hoc signing when `CODE_SIGN_KEYCHAIN` is absent; use that only for disposable local builds, because macOS may request permissions after every rebuild. An eventual App Store build is a separate flow and requires its own Apple Distribution identity and provisioning profile. This is a local development build, not a notarized release or an App Store submission.
+The script refuses to make an ad-hoc build because its changing identity makes macOS ask for permissions again. Direct distribution uses Developer ID and no App Sandbox entitlement; an eventual App Store build is a separate flow and requires Apple Distribution plus a provisioning profile. This is a local development build, not a notarized release or an App Store submission.
 
 Open `Package.swift` in Xcode to edit the source. Launch the bundled app using the instructions above for Bluetooth permission testing, rather than the bare command-line executable.
 
