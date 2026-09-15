@@ -60,4 +60,16 @@ final class LEDCommandTests: XCTestCase {
         queue.clear()
         XCTAssertTrue(queue.isEmpty)
     }
+
+    func testAmbientMixerWeightsDisplaysByAreaAndSmoothsTransitions() {
+        var mixer = AmbientColorMixer(smoothing: 0.5)
+        let first = mixer.mix([
+            DisplayColorSample(color: AmbientRGB(red: 255, green: 0, blue: 0), weight: 3),
+            DisplayColorSample(color: AmbientRGB(red: 0, green: 0, blue: 255), weight: 1)
+        ])
+        XCTAssertEqual(first, AmbientRGB(red: 191, green: 0, blue: 64))
+
+        let second = mixer.mix([DisplayColorSample(color: AmbientRGB(red: 0, green: 255, blue: 0), weight: 1)])
+        XCTAssertEqual(second, AmbientRGB(red: 96, green: 128, blue: 32))
+    }
 }

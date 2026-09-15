@@ -11,4 +11,5 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSBluetoothAlwaysUsageDescription</key><string>Desktop LEDs necesita Bluetooth para encontrar y controlar las luces de tu escritorio.</string>
+    <key>NSScreenCaptureUsageDescription</key><string>Desktop LEDs necesita leer colores de tus pantallas para sincronizar las luces del escritorio.</string>
 </dict></plist>

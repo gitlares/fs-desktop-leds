@@ -38,6 +38,14 @@ The app-level control vocabulary is deliberately small: power, RGB color, and br
 
 Treat the desk strip as one RGB zone until hardware testing establishes otherwise. Segment control and Bluetooth update rates are not yet verified.
 
+### Ambient mode
+
+Ambient mode uses ScreenCaptureKit and automatically includes every active display exposed by macOS. One display produces one sample; multiple displays are captured independently and their average colors are weighted by display area. `SCDisplay.frame` and `displayID` are retained by the capture layer, so a later placement-aware feature can use the existing macOS layout without changing the Bluetooth or driver layers.
+
+Capture is deliberately bounded: each display is scaled to 64 pixels wide, sampled at most at 5 fps, has a queue depth of 3, and never captures audio. The mixer smooths scene transitions, ignores imperceptibly small RGB differences, and outputs at most 5 Bluetooth updates per second. It stops when the toggle is disabled or the light disconnects.
+
+The first activation requires macOS Screen Recording permission. If macOS asks, grant it to Desktop LEDs; Apple may require quitting and reopening the app after granting permission. The implementation does not record, save, upload, or transmit screen images. It reduces each frame locally to one color and discards the pixels immediately.
+
 ## Development
 
 Requires macOS 14 or later and Xcode 15 or later (Swift 5.9+). No third-party package dependencies.
@@ -71,6 +79,7 @@ The menu bar provides power controls and can reopen the control window. UI value
 - Pending writes are coalesced by command type and paced at no more than 10 per second; the queue holds at most three commands.
 - Brightness is sent after releasing the slider. Color changes are coalesced during interaction.
 - No polling timer, screen capture, network access, or persistent discovery in manual-control mode.
+- Ambient mode uses bounded, low-resolution ScreenCaptureKit streams only while enabled.
 - Sleep cancels active work; wake can reconnect the selected device.
 
 The CPU, memory, and energy budget has not yet been benchmarked.

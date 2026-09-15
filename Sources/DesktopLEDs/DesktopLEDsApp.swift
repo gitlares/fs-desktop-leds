@@ -5,11 +5,15 @@ import LEDProtocol
 @main
 struct DesktopLEDsApp: App {
     @StateObject private var bluetooth = BluetoothController()
+    @StateObject private var ambient = AmbientLightingController()
 
     var body: some Scene {
         Window("Desktop LEDs", id: "controls") {
-            ControlView(controller: bluetooth)
-                .onAppear { bluetooth.restoreIfKnown() }
+            ControlView(controller: bluetooth, ambient: ambient)
+                .onAppear {
+                    bluetooth.restoreIfKnown()
+                    ambient.setCommandSink { [weak bluetooth] command in bluetooth?.send(command) }
+                }
         }
         .windowResizability(.contentSize)
         MenuBarExtra("Desktop LEDs", systemImage: "lightbulb.led.fill") {
@@ -35,6 +39,7 @@ private struct OpenControlsButton: View {
 
 struct ControlView: View {
     @ObservedObject var controller: BluetoothController
+    @ObservedObject var ambient: AmbientLightingController
     @State private var color = Color(red: 1, green: 0.55, blue: 0.2)
     @State private var brightness = 50.0
 
@@ -116,6 +121,20 @@ struct ControlView: View {
                 }.padding(8)
             }.disabled(!controller.ready)
 
+            GroupBox("Ambient") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Toggle("Sincronizar con todas las pantallas", isOn: Binding(
+                        get: { ambient.isActive },
+                        set: { $0 ? ambient.start() : ambient.stop() }
+                    ))
+                    Text(ambient.status).font(.caption).foregroundStyle(.secondary)
+                    if ambient.isActive {
+                        Text("Muestra cada monitor como una miniatura de 64 px de ancho y combina sus colores según su área.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }.padding(8)
+            }.disabled(!controller.ready)
+
             DisclosureGroup("Compatibilidad y conexión") {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("No necesitas emparejar desde Ajustes. Cierra duoCo Strip en el iPhone para liberar las luces. Se recuerda el dispositivo al conectar.")
@@ -132,6 +151,9 @@ struct ControlView: View {
         }
         .padding(24)
         .frame(width: 510)
+        .onChange(of: controller.ready) { _, connected in
+            if !connected { ambient.stop() }
+        }
     }
 
     private func preset(_ label: String, _ value: Color) -> some View {
