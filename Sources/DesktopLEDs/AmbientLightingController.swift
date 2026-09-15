@@ -151,16 +151,38 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
         guard width > 0, height > 0 else { return nil }
         let pixels = base.assumingMemoryBound(to: UInt8.self)
         let samplingStride = 4
-        var blue = 0, green = 0, red = 0, count = 0
+        var blue = 0.0, green = 0.0, red = 0.0, totalWeight = 0.0
         for y in Swift.stride(from: 0, to: height, by: samplingStride) {
             let row = pixels.advanced(by: y * bytesPerRow)
             for x in Swift.stride(from: 0, to: width, by: samplingStride) {
                 let pixel = row.advanced(by: x * 4)
-                blue += Int(pixel[0]); green += Int(pixel[1]); red += Int(pixel[2]); count += 1
+                let pixelBlue = Double(pixel[0])
+                let pixelGreen = Double(pixel[1])
+                let pixelRed = Double(pixel[2])
+                let maximum = max(pixelRed, pixelGreen, pixelBlue)
+                let minimum = min(pixelRed, pixelGreen, pixelBlue)
+                let saturation = maximum > 0 ? (maximum - minimum) / maximum : 0
+                let isEdge = x < width / 5 || x >= width * 4 / 5 || y < height / 5 || y >= height * 4 / 5
+
+                // A whole-frame average is usually gray during films. Give
+                // colorful pixels and the screen edges more influence, which
+                // is more noticeable on a single-zone strip.
+                let weight = (0.15 + saturation * 1.85) * (isEdge ? 1.35 : 1)
+                blue += pixelBlue * weight
+                green += pixelGreen * weight
+                red += pixelRed * weight
+                totalWeight += weight
             }
         }
-        guard count > 0 else { return nil }
-        return AmbientRGB(red: UInt8(red / count), green: UInt8(green / count), blue: UInt8(blue / count))
+        guard totalWeight > 0 else { return nil }
+        let averageRed = red / totalWeight
+        let averageGreen = green / totalWeight
+        let averageBlue = blue / totalWeight
+        let gray = (averageRed + averageGreen + averageBlue) / 3
+        func vivid(_ component: Double) -> UInt8 {
+            UInt8(min(255, max(0, (gray + (component - gray) * 1.45).rounded())))
+        }
+        return AmbientRGB(red: vivid(averageRed), green: vivid(averageGreen), blue: vivid(averageBlue))
     }
 
     fileprivate static func colorDistance(_ lhs: AmbientRGB, _ rhs: AmbientRGB) -> Int {

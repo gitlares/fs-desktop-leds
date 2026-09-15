@@ -135,7 +135,7 @@ struct ControlView: View {
                         }
                     }
                     if ambient.isActive {
-                        Text("Muestra el monitor principal como una miniatura de 64 px de ancho. El resto de las pantallas no afecta el color.")
+                        Text("Muestra el monitor principal como una miniatura de 64 px. Prioriza bordes y colores vivos para que una sola zona se note más.")
                             .font(.caption).foregroundStyle(.secondary)
                         Text("Ambient enciende la tira y fija el brillo en 100 %.")
                             .font(.caption).foregroundStyle(.secondary)
