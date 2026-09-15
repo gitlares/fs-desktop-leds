@@ -116,8 +116,8 @@ struct ControlView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("No necesitas emparejar desde Ajustes. Cierra duoCo Strip en el iPhone para liberar las luces. Se recuerda el dispositivo al conectar.")
                     Picker("Protocolo", selection: $controller.profile) {
-                        Text("ELK-BLEDOM estándar").tag(LEDProfile.standard)
-                        Text("ELK-BLEDOM alternativo").tag(LEDProfile.alternate)
+                        Text("ELK-BLEDOM estándar").tag(ELKBLEDOMVariant.standard)
+                        Text("ELK-BLEDOM alternativo").tag(ELKBLEDOMVariant.alternate)
                     }.disabled(!controller.ready)
                     Text("Si conecta pero no cambia de color, prueba el alternativo y pulsa un color de nuevo.")
                         .foregroundStyle(.secondary)

@@ -22,6 +22,12 @@ Initial test hardware: an Apple Silicon M3 MacBook Pro and a standing desk whose
 
 Keep the Bluetooth protocol, device connection, and interface separate. Linux support is a future goal; no Rust or Qt dependency is required for the macOS MVP.
 
+### Driver architecture
+
+The app-level control vocabulary is deliberately small: power, RGB color, and brightness. Each controller family is represented by a `LightDriver`, which is responsible for three things: deciding whether it supports an advertised device name, declaring its BLE write characteristic, and encoding the common controls into device-specific packets.
+
+`DriverCatalog` is the only registration point for built-in drivers. CoreBluetooth never contains vendor names, UUIDs, or packet layouts, and SwiftUI only speaks in common controls. To add a controller family, implement `LightDriver`, add it to the catalog, and write driver-level tests; the discovery, reconnection, queueing, UI, and future ambient engine remain unchanged.
+
 ## Next: screen ambient lighting
 
 - Read monitor arrangement from macOS automatically.

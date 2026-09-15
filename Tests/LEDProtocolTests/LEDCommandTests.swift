@@ -3,21 +3,29 @@ import XCTest
 
 final class LEDCommandTests: XCTestCase {
     func testStandardWireCommands() {
-        XCTAssertEqual(Array(LEDCommand.power(true).packet()), [0x7e, 0, 4, 0xf0, 0, 1, 0xff, 0, 0xef])
-        XCTAssertEqual(Array(LEDCommand.power(false).packet()), [0x7e, 0, 4, 0, 0, 0, 0xff, 0, 0xef])
-        XCTAssertEqual(Array(LEDCommand.color(255, 128, 0).packet()), [0x7e, 0, 5, 3, 255, 128, 0, 0, 0xef])
-        XCTAssertEqual(Array(LEDCommand.brightness(50).packet()), [0x7e, 0, 1, 50, 255, 0, 255, 0, 0xef])
+        let driver = ELKBLEDOMDriver()
+        XCTAssertEqual(Array(driver.packet(for: .power(true))), [0x7e, 0, 4, 0xf0, 0, 1, 0xff, 0, 0xef])
+        XCTAssertEqual(Array(driver.packet(for: .power(false))), [0x7e, 0, 4, 0, 0, 0, 0xff, 0, 0xef])
+        XCTAssertEqual(Array(driver.packet(for: .color(255, 128, 0))), [0x7e, 0, 5, 3, 255, 128, 0, 0, 0xef])
+        XCTAssertEqual(Array(driver.packet(for: .brightness(50))), [0x7e, 0, 1, 50, 255, 0, 255, 0, 0xef])
     }
 
     func testAlternateWireCommands() {
-        XCTAssertEqual(Array(LEDCommand.color(1, 2, 3).packet(profile: .alternate)), [0x7e, 7, 5, 3, 1, 2, 3, 10, 0xef])
-        XCTAssertEqual(Array(LEDCommand.power(true).packet(profile: .alternate)), [0x7e, 4, 4, 240, 0, 1, 255, 0, 0xef])
-        XCTAssertEqual(Array(LEDCommand.brightness(50).packet(profile: .alternate)), [0x7e, 4, 1, 50, 1, 255, 2, 1, 0xef])
+        let driver = ELKBLEDOMDriver(variant: .alternate)
+        XCTAssertEqual(Array(driver.packet(for: .color(1, 2, 3))), [0x7e, 7, 5, 3, 1, 2, 3, 10, 0xef])
+        XCTAssertEqual(Array(driver.packet(for: .power(true))), [0x7e, 4, 4, 240, 0, 1, 255, 0, 0xef])
+        XCTAssertEqual(Array(driver.packet(for: .brightness(50))), [0x7e, 4, 1, 50, 1, 255, 2, 1, 0xef])
     }
 
     func testBrightnessClampsInsteadOfOverflowing() {
-        XCTAssertEqual(LEDCommand.brightness(-10).packet()[3], 0)
-        XCTAssertEqual(LEDCommand.brightness(1000).packet()[3], 100)
+        let driver = ELKBLEDOMDriver()
+        XCTAssertEqual(driver.packet(for: .brightness(-10))[3], 0)
+        XCTAssertEqual(driver.packet(for: .brightness(1000))[3], 100)
+    }
+
+    func testCatalogDetectsOnlyCompatibleLight() {
+        XCTAssertNotNil(DriverCatalog.shared.driver(forAdvertisedName: "ELK-BLEDOM"))
+        XCTAssertNil(DriverCatalog.shared.driver(forAdvertisedName: "MELK-OA10"))
     }
 
     func testRapidChangesStayBoundedAndKeepLatestValue() {

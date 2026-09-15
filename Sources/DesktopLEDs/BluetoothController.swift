@@ -7,6 +7,7 @@ struct NearbyLight: Identifiable {
     let id: UUID
     let name: String
     let rssi: Int
+    let driver: any LightDriver
 }
 
 /// CoreBluetooth delegates and all state mutations use the main queue.
@@ -19,7 +20,7 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     @Published private(set) var bluetoothAvailable = false
     @Published private(set) var selectedName: String?
     @Published private(set) var lastCommand = "Sin comandos enviados en esta conexión."
-    @Published var profile: LEDProfile = .standard {
+    @Published var profile: ELKBLEDOMVariant = .standard {
         didSet {
             buffer.clear()
             if let id = peripheral?.identifier {
@@ -30,6 +31,7 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
 
     private var central: CBCentralManager?
     private var discovered: [UUID: CBPeripheral] = [:]
+    private var discoveredDrivers: [UUID: any LightDriver] = [:]
     private var peripheral: CBPeripheral?
     private var characteristic: CBCharacteristic?
     private var timeout: DispatchWorkItem?
@@ -43,7 +45,7 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     private var retryCount = 0
     private var wantsConnection = false
     private var pendingSearch = false
-    private let writeUUID = CBUUID(string: "FFF3")
+    private var driver: (any LightDriver)?
     private var savedID: UUID? {
         UserDefaults.standard.string(forKey: "selectedLight").flatMap(UUID.init(uuidString:))
     }
@@ -83,6 +85,7 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         timeout?.cancel()
         devices = []
         discovered = [:]
+        discoveredDrivers = [:]
         scanning = true
         status = "Buscando ELK-BLEDOM durante 10 segundos…"
         // Many controllers do not advertise their service UUID, so filter names locally.
@@ -118,7 +121,15 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         device.delegate = self
         characteristic = nil
         selectedName = device.name ?? "ELK-BLEDOM"
-        profile = LEDProfile(rawValue: UserDefaults.standard.string(forKey: "profile.\(device.identifier)") ?? "") ?? .standard
+        profile = ELKBLEDOMVariant(rawValue: UserDefaults.standard.string(forKey: "profile.\(device.identifier)") ?? "") ?? .standard
+        guard let detectedDriver = discoveredDrivers[device.identifier]
+                ?? DriverCatalog.shared.driver(forAdvertisedName: device.name ?? "") else {
+            status = "No se identificó un driver compatible para este dispositivo."
+            return
+        }
+        driver = detectedDriver.id.hasPrefix("elk-bledom")
+            ? ELKBLEDOMDriver(variant: profile)
+            : detectedDriver
         connecting = true
         status = "Conectando con \(selectedName ?? "las luces")…"
         central?.connect(device)
@@ -153,6 +164,7 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         ready = false
         connecting = false
         characteristic = nil
+        driver = nil
         let old = peripheral
         peripheral = nil
         if let old { central?.cancelPeripheralConnection(old) }
@@ -209,12 +221,12 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     }
 
     private func flush() {
-        guard ready, let peripheral, let characteristic else { return }
+        guard ready, let peripheral, let characteristic, let driver else { return }
         let type: CBCharacteristicWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
         if type == .withoutResponse && !peripheral.canSendWriteWithoutResponse { return }
         guard let command = buffer.pop() else { return }
         lastWrite = Date()
-        peripheral.writeValue(command.packet(profile: profile), for: characteristic, type: type)
+        peripheral.writeValue(driver.packet(for: command), for: characteristic, type: type)
         lastCommand = "Comando enviado; confirma el cambio en las luces."
         if type == .withResponse {
             awaitingResponse = true
@@ -246,10 +258,10 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     func centralManager(_ central: CBCentralManager, didDiscover device: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         guard scanning else { return }
         let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? device.name ?? ""
-        // Do not send this protocol to MELK/BLEDOB or unrelated nearby devices.
-        guard name.uppercased() == "ELK-BLEDOM" else { return }
+        guard let driver = DriverCatalog.shared.driver(forAdvertisedName: name) else { return }
         discovered[device.identifier] = device
-        let light = NearbyLight(id: device.identifier, name: name, rssi: RSSI.intValue)
+        discoveredDrivers[device.identifier] = driver
+        let light = NearbyLight(id: device.identifier, name: name, rssi: RSSI.intValue, driver: driver)
         if let index = devices.firstIndex(where: { $0.id == light.id }) { devices[index] = light }
         else { devices.append(light) }
         if wantsConnection, device.identifier == autoTarget { connect(device) }
@@ -276,13 +288,16 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         guard error == nil, let services = device.services, !services.isEmpty else {
             fail("No se pudieron leer los servicios Bluetooth."); return
         }
-        for service in services { device.discoverCharacteristics([writeUUID], for: service) }
+        guard let driver else { fail("No se identificó un driver compatible.", retryable: false); return }
+        for service in services {
+            device.discoverCharacteristics([CBUUID(nsuuid: driver.writeCharacteristicUUID)], for: service)
+        }
     }
 
     func peripheral(_ device: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard device === peripheral, !ready else { return }
-        if let found = service.characteristics?.first(where: {
-            $0.uuid == writeUUID && (!$0.properties.intersection([.write, .writeWithoutResponse]).isEmpty)
+        if let driver, let found = service.characteristics?.first(where: {
+            $0.uuid == CBUUID(nsuuid: driver.writeCharacteristicUUID) && (!$0.properties.intersection([.write, .writeWithoutResponse]).isEmpty)
         }) {
             characteristic = found
             timeout?.cancel()
