@@ -222,7 +222,9 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
 
     private func scheduleSend() {
         guard ready, !buffer.isEmpty, sendWork == nil, !awaitingResponse else { return }
-        let delay = max(0, 0.1 - Date().timeIntervalSince(lastWrite))
+        // Ambient mode can use this cadence for a continuous fade. Commands
+        // are still coalesced, so a slow controller never accumulates a queue.
+        let delay = max(0, 0.06 - Date().timeIntervalSince(lastWrite))
         let work = DispatchWorkItem { [weak self] in
             self?.sendWork = nil
             self?.flush()

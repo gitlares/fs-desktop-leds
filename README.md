@@ -41,7 +41,7 @@ Treat the desk strip as one RGB zone until hardware testing establishes otherwis
 
 Ambient mode uses ScreenCaptureKit and captures only the primary display selected by macOS. It reduces that display to one color. The capture layer retains `displayID`, and the mixer remains independent of ScreenCaptureKit so a later placement-aware multi-display mode can be added without changing Bluetooth drivers.
 
-Capture is deliberately bounded: the display is scaled to 64 pixels wide, sampled at most at 5 fps, has a queue depth of 3, and never captures audio. The mixer moves 20% toward the sampled color per frame, ignores imperceptibly small RGB differences, and outputs at most 5 Bluetooth updates per second. It stops when the toggle is disabled or the light disconnects.
+Capture is deliberately bounded: the display is scaled to 64 pixels wide, sampled at most at 15 fps, has a queue depth of 3, and never captures audio. The mixer moves 12% toward the sampled color per frame, ignores imperceptibly small RGB differences, and outputs at most 15 Bluetooth updates per second. It stops when the toggle is disabled or the light disconnects.
 
 The first activation requires macOS Screen Recording permission. If macOS asks, grant it to Desktop LEDs; if it was previously denied, the Ambient section provides **Abrir ajustes de Grabación de pantalla**. Enable Desktop LEDs there, then quit and reopen the app before activating Ambient again. The implementation does not record, save, upload, or transmit screen images. It reduces each frame locally to one color and discards the pixels immediately.
 

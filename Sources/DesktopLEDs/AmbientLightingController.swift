@@ -28,7 +28,9 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
     private var lastColor: AmbientRGB?
     private var commandSink: ((LEDCommand) -> Void)?
 
-    private let frameRate = 5
+    // 15 small 64 px samples per second are visually smooth while still
+    // processing only a few thousand pixels and bytes of BLE traffic.
+    private let frameRate = 15
     private let outputWidth = 64
 
     func setCommandSink(_ sink: @escaping (LEDCommand) -> Void) {

@@ -30,7 +30,7 @@ public struct AmbientColorMixer: Sendable {
     private let smoothing: Double
     private var previous: AmbientRGB?
 
-    public init(smoothing: Double = 0.20) {
+    public init(smoothing: Double = 0.12) {
         self.smoothing = min(1, max(0, smoothing))
     }
 
