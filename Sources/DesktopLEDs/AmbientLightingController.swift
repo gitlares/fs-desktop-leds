@@ -7,7 +7,10 @@ import LEDProtocol
 
 /// macOS capture adapter. It maps each active SCDisplay to a tiny stream and
 /// sends the mixed result through the app-level command callback.
-final class AmbientLightingController: NSObject, ObservableObject, SCStreamDelegate {
+// Capture callbacks run off-main, but every mutable member is transferred to
+// the main queue before use. The instance can therefore be safely referenced
+// by ScreenCaptureKit's Sendable callback closures.
+final class AmbientLightingController: NSObject, ObservableObject, SCStreamDelegate, @unchecked Sendable {
     @Published private(set) var isActive = false
     @Published private(set) var status = "Ambient apagado."
     @Published private(set) var displayCount = 0
