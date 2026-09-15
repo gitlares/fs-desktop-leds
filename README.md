@@ -56,7 +56,13 @@ bash scripts/build-app.sh
 open "build/Desktop LEDs.app"
 ```
 
-The script builds an optimized release executable, packages it as a native `.app`, and applies an ad-hoc signature with App Sandbox and the Bluetooth entitlement. This is a local development build, not a notarized release or an App Store submission. For stable development signing, set `CODE_SIGN_IDENTITY` to an available signing identity when running the script. macOS may request Bluetooth permission again after rebuilding an ad-hoc-signed app.
+The script builds an optimized release executable and packages it as a native `.app`. To preserve Bluetooth and Screen Recording permission across rebuilds, sign with a stable Developer ID identity and its exact keychain:
+
+```sh
+CODE_SIGN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db" bash scripts/build-app.sh
+```
+
+The script selects the App Store signing certificate used by FS User Stories from that keychain by fingerprint, falling back to Developer ID when needed. It falls back to ad-hoc signing when `CODE_SIGN_KEYCHAIN` is absent; use that only for disposable local builds, because macOS may request permissions after every rebuild. This is a local development build, not a notarized release or an App Store submission.
 
 Open `Package.swift` in Xcode to edit the source. Launch the bundled app using the instructions above for Bluetooth permission testing, rather than the bare command-line executable.
 
