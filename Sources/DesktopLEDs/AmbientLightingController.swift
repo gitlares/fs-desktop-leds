@@ -17,6 +17,7 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
     @Published private(set) var sampleCount = 0
     @Published private(set) var lastSample: AmbientRGB?
     @Published private(set) var sentCount = 0
+    @Published private(set) var needsScreenPermission = false
 
     private let captureQueue = DispatchQueue(label: "com.gitlares.desktop-leds.capture", qos: .utility)
     private var streams: [SCStream] = []
@@ -54,6 +55,7 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
         lastSample = nil
         sentCount = 0
         status = "Ambient apagado."
+        needsScreenPermission = false
         Task {
             for stream in activeStreams { try? await stream.stopCapture() }
         }
@@ -101,9 +103,14 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
             sentCount = 0
             isActive = true
             status = "Ambient activo en \(newStreams.count) \(newStreams.count == 1 ? "monitor" : "monitores")."
+            needsScreenPermission = false
         } catch {
             stop()
-            status = "No se pudo capturar la pantalla: \(error.localizedDescription)"
+            let denied = error.localizedDescription.localizedCaseInsensitiveContains("declined")
+            needsScreenPermission = denied
+            status = denied
+                ? "macOS no autorizó Grabación de pantalla para Desktop LEDs."
+                : "No se pudo capturar la pantalla: \(error.localizedDescription)"
         }
     }
 

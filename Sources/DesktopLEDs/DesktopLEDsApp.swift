@@ -128,6 +128,12 @@ struct ControlView: View {
                         set: { $0 ? ambient.start() : ambient.stop() }
                     ))
                     Text(ambient.status).font(.caption).foregroundStyle(.secondary)
+                    if ambient.needsScreenPermission {
+                        Button("Abrir ajustes de Grabación de pantalla") {
+                            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
                     if ambient.isActive {
                         Text("Muestra cada monitor como una miniatura de 64 px de ancho y combina sus colores según su área.")
                             .font(.caption).foregroundStyle(.secondary)

@@ -44,7 +44,7 @@ Ambient mode uses ScreenCaptureKit and automatically includes every active displ
 
 Capture is deliberately bounded: each display is scaled to 64 pixels wide, sampled at most at 5 fps, has a queue depth of 3, and never captures audio. The mixer smooths scene transitions, ignores imperceptibly small RGB differences, and outputs at most 5 Bluetooth updates per second. It stops when the toggle is disabled or the light disconnects.
 
-The first activation requires macOS Screen Recording permission. If macOS asks, grant it to Desktop LEDs; Apple may require quitting and reopening the app after granting permission. The implementation does not record, save, upload, or transmit screen images. It reduces each frame locally to one color and discards the pixels immediately.
+The first activation requires macOS Screen Recording permission. If macOS asks, grant it to Desktop LEDs; if it was previously denied, the Ambient section provides **Abrir ajustes de Grabación de pantalla**. Enable Desktop LEDs there, then quit and reopen the app before activating Ambient again. The implementation does not record, save, upload, or transmit screen images. It reduces each frame locally to one color and discards the pixels immediately.
 
 ## Development
 
