@@ -131,6 +131,13 @@ struct ControlView: View {
                     if ambient.isActive {
                         Text("Muestra cada monitor como una miniatura de 64 px de ancho y combina sus colores según su área.")
                             .font(.caption).foregroundStyle(.secondary)
+                        if let color = ambient.lastSample {
+                            Text("Muestras: \(ambient.sampleCount) · enviados: \(ambient.sentCount) · RGB(\(color.red), \(color.green), \(color.blue))")
+                                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        } else {
+                            Text("Esperando las primeras muestras de pantalla…")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                 }.padding(8)
             }.disabled(!controller.ready)

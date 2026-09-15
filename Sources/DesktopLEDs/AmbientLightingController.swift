@@ -14,6 +14,9 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
     @Published private(set) var isActive = false
     @Published private(set) var status = "Ambient apagado."
     @Published private(set) var displayCount = 0
+    @Published private(set) var sampleCount = 0
+    @Published private(set) var lastSample: AmbientRGB?
+    @Published private(set) var sentCount = 0
 
     private let captureQueue = DispatchQueue(label: "com.gitlares.desktop-leds.capture", qos: .utility)
     private var streams: [SCStream] = []
@@ -47,6 +50,9 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
         lastColor = nil
         isActive = false
         displayCount = 0
+        sampleCount = 0
+        lastSample = nil
+        sentCount = 0
         status = "Ambient apagado."
         Task {
             for stream in activeStreams { try? await stream.stopCapture() }
@@ -90,6 +96,9 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
             streams = newStreams
             outputs = newOutputs
             displayCount = newStreams.count
+            sampleCount = 0
+            lastSample = nil
+            sentCount = 0
             isActive = true
             status = "Ambient activo en \(newStreams.count) \(newStreams.count == 1 ? "monitor" : "monitores")."
         } catch {
@@ -108,12 +117,15 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
     fileprivate func accept(_ sample: DisplayColorSample, from displayID: CGDirectDisplayID) {
         guard isActive else { return }
         samples[displayID] = sample
+        sampleCount += 1
         guard let mixed = mixer.mix(Array(samples.values)) else { return }
+        lastSample = mixed
         let now = Date()
         guard now.timeIntervalSince(lastSent) >= 1.0 / Double(frameRate) else { return }
         guard lastColor.map({ Self.colorDistance($0, mixed) >= 4 }) ?? true else { return }
         lastSent = now
         lastColor = mixed
+        sentCount += 1
         commandSink?(mixed.command)
     }
 
