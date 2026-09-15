@@ -73,10 +73,14 @@ struct ControlView: View {
                             HStack {
                                 VStack(alignment: .leading) {
                                     Text(device.name).bold()
-                                    Text("\(device.id.uuidString.prefix(8)) · \(device.rssi) dBm").font(.caption).foregroundStyle(.secondary)
+                                    Text(device.isSupported
+                                        ? "Compatible con \(device.driverName ?? "un driver") · \(device.rssi) dBm"
+                                        : "Detectado, sin driver · \(device.rssi) dBm")
+                                        .font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 Button("Conectar") { controller.connect(id: device.id) }
+                                    .disabled(!device.isSupported)
                             }
                         }
                     }

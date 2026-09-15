@@ -7,7 +7,9 @@ struct NearbyLight: Identifiable {
     let id: UUID
     let name: String
     let rssi: Int
-    let driver: any LightDriver
+    let driverName: String?
+
+    var isSupported: Bool { driverName != nil }
 }
 
 /// CoreBluetooth delegates and all state mutations use the main queue.
@@ -107,7 +109,10 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     }
 
     func connect(id: UUID) {
-        guard let device = discovered[id], !connecting, !ready else { return }
+        guard let device = discovered[id], discoveredDrivers[id] != nil, !connecting, !ready else {
+            status = "Ese dispositivo aún no tiene un driver compatible."
+            return
+        }
         retryCount = 0
         wantsConnection = true
         autoTarget = id
@@ -257,14 +262,17 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
 
     func centralManager(_ central: CBCentralManager, didDiscover device: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         guard scanning else { return }
-        let name = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? device.name ?? ""
-        guard let driver = DriverCatalog.shared.driver(forAdvertisedName: name) else { return }
+        let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? ""
+        let peripheralName = device.name ?? ""
+        let driver = DriverCatalog.shared.driver(forAdvertisedName: advertisedName)
+            ?? DriverCatalog.shared.driver(forAdvertisedName: peripheralName)
+        let name = peripheralName.isEmpty ? advertisedName : peripheralName
         discovered[device.identifier] = device
         discoveredDrivers[device.identifier] = driver
-        let light = NearbyLight(id: device.identifier, name: name, rssi: RSSI.intValue, driver: driver)
+        let light = NearbyLight(id: device.identifier, name: name.isEmpty ? "Sin nombre" : name, rssi: RSSI.intValue, driverName: driver?.displayName)
         if let index = devices.firstIndex(where: { $0.id == light.id }) { devices[index] = light }
         else { devices.append(light) }
-        if wantsConnection, device.identifier == autoTarget { connect(device) }
+        if wantsConnection, driver != nil, device.identifier == autoTarget { connect(device) }
     }
 
     func centralManager(_ central: CBCentralManager, didConnect device: CBPeripheral) {

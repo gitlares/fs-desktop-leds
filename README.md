@@ -55,7 +55,7 @@ Open `Package.swift` in Xcode to edit the source. Launch the bundled app using t
 ### Connect and control
 
 1. Power the desk's LED controller and close duoCo Strip on the iPhone to release its connection.
-2. Open Desktop LEDs and click **Buscar luces**. Allow the macOS Bluetooth prompt.
+2. Open Desktop LEDs and click **Buscar luces**. Allow the macOS Bluetooth prompt. The MVP also shows nearby unsupported BLE advertisements to make controller discovery diagnosable; only supported devices can be connected.
 3. Select **ELK-BLEDOM** and click **Conectar**. No prior pairing in System Settings is required for the expected controller.
 4. Test **Encender**, the color presets, brightness, and **Apagar**.
 5. If it connects but does not respond, expand **Compatibilidad y conexión**, select the alternate protocol, and try again. The variant is saved per device.

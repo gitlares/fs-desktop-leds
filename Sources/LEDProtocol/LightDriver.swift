@@ -33,7 +33,9 @@ public struct ELKBLEDOMDriver: LightDriver, Sendable {
     public var writeCharacteristicUUID: UUID { UUID(uuidString: "0000FFF3-0000-1000-8000-00805F9B34FB")! }
 
     public func matches(advertisedName: String) -> Bool {
-        advertisedName.uppercased() == "ELK-BLEDOM"
+        advertisedName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased() == "ELK-BLEDOM"
     }
 
     public func packet(for command: LEDCommand) -> Data {
