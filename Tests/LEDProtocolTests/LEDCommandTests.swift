@@ -28,6 +28,9 @@ final class LEDCommandTests: XCTestCase {
         let driver = ELKBLEDOMDriver()
         XCTAssertEqual(driver.packet(for: .brightness(-10))[3], 0)
         XCTAssertEqual(driver.packet(for: .brightness(1000))[3], 100)
+
+        let alternate = ELKBLEDOMDriver(variant: .alternate)
+        XCTAssertEqual(Array(alternate.packet(for: .brightness(100))), [0x7e, 4, 1, 100, 1, 0xff, 2, 1, 0xef])
     }
 
     func testCatalogDetectsOnlyCompatibleLight() {

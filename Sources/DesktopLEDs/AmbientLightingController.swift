@@ -103,6 +103,10 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
             isActive = true
             status = "Ambient activo en el monitor principal."
             needsScreenPermission = false
+            // Ambient colors are meant to be visible. Set a known physical
+            // state once, then only send bounded color updates per frame.
+            commandSink?(.power(true))
+            commandSink?(.brightness(100))
         } catch {
             stop()
             let denied = error.localizedDescription.localizedCaseInsensitiveContains("declined")

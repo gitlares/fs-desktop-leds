@@ -137,6 +137,8 @@ struct ControlView: View {
                     if ambient.isActive {
                         Text("Muestra el monitor principal como una miniatura de 64 px de ancho. El resto de las pantallas no afecta el color.")
                             .font(.caption).foregroundStyle(.secondary)
+                        Text("Ambient enciende la tira y fija el brillo en 100 %.")
+                            .font(.caption).foregroundStyle(.secondary)
                         if let color = ambient.lastSample {
                             Text("Muestras: \(ambient.sampleCount) · enviados: \(ambient.sentCount) · RGB(\(color.red), \(color.green), \(color.blue))")
                                 .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
