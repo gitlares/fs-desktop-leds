@@ -71,5 +71,8 @@ final class LEDCommandTests: XCTestCase {
 
         let second = mixer.mix([DisplayColorSample(color: AmbientRGB(red: 0, green: 255, blue: 0), weight: 1)])
         XCTAssertEqual(second, AmbientRGB(red: 96, green: 128, blue: 32))
+
+        let third = mixer.mix([DisplayColorSample(color: AmbientRGB(red: 0, green: 255, blue: 0), weight: 1)])
+        XCTAssertEqual(third, AmbientRGB(red: 48, green: 192, blue: 16))
     }
 }
