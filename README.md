@@ -62,7 +62,7 @@ The script builds an optimized release executable and packages it as a native `.
 CODE_SIGN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db" bash scripts/build-app.sh
 ```
 
-The script selects the App Store signing certificate used by FS User Stories from that keychain by fingerprint, falling back to Developer ID when needed. It falls back to ad-hoc signing when `CODE_SIGN_KEYCHAIN` is absent; use that only for disposable local builds, because macOS may request permissions after every rebuild. This is a local development build, not a notarized release or an App Store submission.
+The script selects a Developer ID certificate from that keychain by fingerprint. It falls back to ad-hoc signing when `CODE_SIGN_KEYCHAIN` is absent; use that only for disposable local builds, because macOS may request permissions after every rebuild. An eventual App Store build is a separate flow and requires its own Apple Distribution identity and provisioning profile. This is a local development build, not a notarized release or an App Store submission.
 
 Open `Package.swift` in Xcode to edit the source. Launch the bundled app using the instructions above for Bluetooth permission testing, rather than the bare command-line executable.
 

@@ -16,13 +16,10 @@ cp LICENSE THIRD_PARTY_NOTICES.md "$APP_DIR/Contents/Resources/"
 SIGNING_IDENTITY="${CODE_SIGN_IDENTITY:-}"
 KEYCHAIN_PATH="${CODE_SIGN_KEYCHAIN:-}"
 if [[ -n "$KEYCHAIN_PATH" && -z "$SIGNING_IDENTITY" ]]; then
-  # Prefer the App Store certificate used by FS User Stories. Fall back to a
-  # Developer ID certificate for non-App-Store development. The SHA-1 avoids
-  # ambiguity when the same certificate appears in more than one keychain.
-  SIGNING_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -nE '/3rd Party Mac Developer Application/s/^[[:space:]]*[0-9]+\) ([0-9A-F]+).*/\1/p' | head -n 1)"
-  if [[ -z "$SIGNING_IDENTITY" ]]; then
-    SIGNING_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -nE '/Developer ID Application/s/^[[:space:]]*[0-9]+\) ([0-9A-F]+).*/\1/p' | head -n 1)"
-  fi
+  # Local development and direct distribution use Developer ID. App Store
+  # builds require a distinct provisioning profile and are not produced here.
+  # The SHA-1 avoids ambiguity when the same certificate appears twice.
+  SIGNING_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -nE '/Developer ID Application/s/^[[:space:]]*[0-9]+\) ([0-9A-F]+).*/\1/p' | head -n 1)"
 fi
 if [[ -z "$SIGNING_IDENTITY" ]]; then
   SIGNING_IDENTITY="-"
