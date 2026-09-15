@@ -25,6 +25,12 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     @Published var profile: ELKBLEDOMVariant = .standard {
         didSet {
             buffer.clear()
+            // A profile change must take effect immediately; reconnecting just
+            // to try another documented packet layout is unnecessary.
+            if driver is ELKBLEDOMDriver {
+                driver = ELKBLEDOMDriver(variant: profile)
+                lastCommand = "Protocolo actualizado. Envía un color para probarlo."
+            }
             if let id = peripheral?.identifier {
                 UserDefaults.standard.set(profile.rawValue, forKey: "profile.\(id)")
             }

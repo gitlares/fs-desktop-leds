@@ -17,6 +17,13 @@ final class LEDCommandTests: XCTestCase {
         XCTAssertEqual(Array(driver.packet(for: .brightness(50))), [0x7e, 4, 1, 50, 1, 255, 2, 1, 0xef])
     }
 
+    func testAlternateProfileUsesTheDocumentedELKBLEDOMFrames() {
+        let driver = ELKBLEDOMDriver(variant: .alternate)
+        XCTAssertEqual(Array(driver.packet(for: .power(true))), [0x7e, 0x04, 0x04, 0xf0, 0, 1, 0xff, 0, 0xef])
+        XCTAssertEqual(Array(driver.packet(for: .color(255, 0, 0))), [0x7e, 0x07, 0x05, 0x03, 255, 0, 0, 0x0a, 0xef])
+        XCTAssertEqual(Array(driver.packet(for: .brightness(50))), [0x7e, 0x04, 0x01, 50, 1, 0xff, 2, 1, 0xef])
+    }
+
     func testBrightnessClampsInsteadOfOverflowing() {
         let driver = ELKBLEDOMDriver()
         XCTAssertEqual(driver.packet(for: .brightness(-10))[3], 0)

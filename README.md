@@ -58,7 +58,7 @@ Open `Package.swift` in Xcode to edit the source. Launch the bundled app using t
 2. Open Desktop LEDs and click **Buscar luces**. Allow the macOS Bluetooth prompt. The MVP also shows nearby unsupported BLE advertisements to make controller discovery diagnosable; only supported devices can be connected.
 3. Select **ELK-BLEDOM** and click **Conectar**. No prior pairing in System Settings is required for the expected controller.
 4. Test **Encender**, the color presets, brightness, and **Apagar**.
-5. If it connects but does not respond, expand **Compatibilidad y conexión**, select the alternate protocol, and try again. The variant is saved per device.
+5. If it connects but does not respond, expand **Compatibilidad y conexión**, select the alternate protocol, and try a color again. The selected variant applies immediately and is saved per device. This variant sends the documented ELK-BLEDOM frames beginning `7E 04 04` for power and `7E 07 05 03` for RGB.
 
 The app remembers the selected device after service discovery succeeds and attempts reconnection on subsequent launches. An unexpected disconnect triggers up to three retries with increasing delays. Use **Desconectar** to release the lights for the phone, or **Olvidar dispositivo** to remove the saved selection.
 
