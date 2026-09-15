@@ -123,7 +123,7 @@ struct ControlView: View {
 
             GroupBox("Ambient") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Toggle("Sincronizar con todas las pantallas", isOn: Binding(
+                    Toggle("Sincronizar con el monitor principal", isOn: Binding(
                         get: { ambient.isActive },
                         set: { $0 ? ambient.start() : ambient.stop() }
                     ))
@@ -135,7 +135,7 @@ struct ControlView: View {
                         }
                     }
                     if ambient.isActive {
-                        Text("Muestra cada monitor como una miniatura de 64 px de ancho y combina sus colores según su área.")
+                        Text("Muestra el monitor principal como una miniatura de 64 px de ancho. El resto de las pantallas no afecta el color.")
                             .font(.caption).foregroundStyle(.secondary)
                         if let color = ambient.lastSample {
                             Text("Muestras: \(ambient.sampleCount) · enviados: \(ambient.sentCount) · RGB(\(color.red), \(color.green), \(color.blue))")

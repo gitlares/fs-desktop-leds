@@ -5,8 +5,8 @@ import Foundation
 import ScreenCaptureKit
 import LEDProtocol
 
-/// macOS capture adapter. It maps each active SCDisplay to a tiny stream and
-/// sends the mixed result through the app-level command callback.
+/// macOS capture adapter. It maps the macOS primary display to a tiny stream
+/// and sends its average color through the app-level command callback.
 // Capture callbacks run off-main, but every mutable member is transferred to
 // the main queue before use. The instance can therefore be safely referenced
 // by ScreenCaptureKit's Sendable callback closures.
@@ -66,7 +66,8 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
         status = "Solicitando acceso a la pantalla…"
         do {
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-            guard !content.displays.isEmpty else {
+            guard let primaryDisplay = content.displays.first(where: { $0.displayID == CGMainDisplayID() })
+                ?? content.displays.first else {
                 status = "No hay pantallas disponibles para capturar."
                 return
             }
@@ -74,27 +75,25 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
             let excludedApps = content.applications.filter { $0.bundleIdentifier == Bundle.main.bundleIdentifier }
             var newStreams: [SCStream] = []
             var newOutputs: [ScreenStreamOutput] = []
-            for display in content.displays {
-                let configuration = SCStreamConfiguration()
-                configuration.width = outputWidth
-                configuration.height = max(1, Int(Double(outputWidth) * Double(display.height) / Double(display.width)))
-                configuration.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
-                configuration.queueDepth = 3
-                configuration.capturesAudio = false
-                configuration.pixelFormat = kCVPixelFormatType_32BGRA
+            let configuration = SCStreamConfiguration()
+            configuration.width = outputWidth
+            configuration.height = max(1, Int(Double(outputWidth) * Double(primaryDisplay.height) / Double(primaryDisplay.width)))
+            configuration.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
+            configuration.queueDepth = 3
+            configuration.capturesAudio = false
+            configuration.pixelFormat = kCVPixelFormatType_32BGRA
 
-                let filter = SCContentFilter(display: display, excludingApplications: excludedApps, exceptingWindows: [])
-                let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
-                let output = ScreenStreamOutput(
-                    displayID: display.displayID,
-                    weight: Double(display.width * display.height),
-                    owner: self
-                )
-                try stream.addStreamOutput(output, type: .screen, sampleHandlerQueue: captureQueue)
-                try await stream.startCapture()
-                newStreams.append(stream)
-                newOutputs.append(output)
-            }
+            let filter = SCContentFilter(display: primaryDisplay, excludingApplications: excludedApps, exceptingWindows: [])
+            let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
+            let output = ScreenStreamOutput(
+                displayID: primaryDisplay.displayID,
+                weight: 1,
+                owner: self
+            )
+            try stream.addStreamOutput(output, type: .screen, sampleHandlerQueue: captureQueue)
+            try await stream.startCapture()
+            newStreams.append(stream)
+            newOutputs.append(output)
             streams = newStreams
             outputs = newOutputs
             displayCount = newStreams.count
@@ -102,7 +101,7 @@ final class AmbientLightingController: NSObject, ObservableObject, SCStreamDeleg
             lastSample = nil
             sentCount = 0
             isActive = true
-            status = "Ambient activo en \(newStreams.count) \(newStreams.count == 1 ? "monitor" : "monitores")."
+            status = "Ambient activo en el monitor principal."
             needsScreenPermission = false
         } catch {
             stop()
