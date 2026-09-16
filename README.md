@@ -108,8 +108,10 @@ Menu labels follow the macOS app language. The paths above use English labels.
 - **Other hardware:** unverified. A matching Bluetooth name does not prove compatibility.
 - **LED addressing:** effects change the whole strip together. Individual pixels
   and independent segments are not supported by this release.
-- **Firmware effects:** internal fade packets did not animate the test strip;
-  normal animations generate RGB commands from the Mac instead.
+- **Firmware effects:** the fade commands we tested did not animate the test
+  strip. This does not establish that its firmware lacks effects: Glow uses a
+  different packet layout that has not been validated on this controller.
+  The beta's animations generate RGB commands from the Mac instead.
 - **Music:** uses Mac audio or the selected microphone. More tracks and output
   devices need testing. Protected content may restrict capture.
 - **Notifications:** Accessibility detects visible banners. Focus-hidden notices,
@@ -208,9 +210,31 @@ owns discovery and paced writes. New drivers belong in `LightDriver` and
 [Contributions](CONTRIBUTING.md) are welcome. Keep the menu simple and avoid new
 runtime dependencies. MIT licensed; see [LICENSE](LICENSE).
 
-[Glow](https://github.com/kshivam654/glow) informed the feature inventory. This is
-an independent Swift implementation. Packet references and attribution are in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+## Acknowledgements
+
+[Glow](https://github.com/kshivam654/glow), by Shivam, inspired the feature set,
+scene names and the idea of combining screen and sound with desk lighting.
+Thank you for sharing that work. FS Desktop LEDs is an independent native Swift
+implementation; it does not bundle or execute Glow's Python code. Scene colors,
+brightness values and the lighting implementation are maintained here.
+
+The ELK-BLEDOM packet layouts were adapted from
+[dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom), and
+[Sparkle](https://sparkle-project.org/) provides signed updates. Attribution and
+license notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Hardware effects versus software animations
+
+Glow exposes commands that ask the strip's firmware to run an effect. Our public
+beta runs its animations on the Mac and sends changing RGB colors to the strip.
+Both approaches can animate the whole strip; neither proves individual LED
+addressing is available.
+
+Our diagnostic fade tests on one ELK-BLEDOM controller had no visible response.
+Glow's effect command uses a 10-byte frame with speed included; our diagnostic
+variant uses a 9-byte frame and a separate speed command. Compatibility with
+Glow's variant remains untested. A Bluetooth device name alone cannot establish
+which packet format or built-in effects its firmware supports.
 
 ## More apps by Daniel Lares
 
