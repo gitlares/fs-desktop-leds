@@ -24,6 +24,8 @@ FS Desktop LEDs puts those controls in the Mac's menu bar. FS stands for
 ## Install
 
 The first beta is for **Apple Silicon Macs running macOS 14 or later**.
+The downloadable app and DMG are Developer ID signed and Apple notarized.
+You do not need Xcode, Python or a developer account to use the download.
 
 1. Download the DMG from [GitHub Releases](https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1).
 2. Open it and drag **Desktop LEDs** into **Applications**.
@@ -50,6 +52,54 @@ a mode; its settings appear below its choices.
 Daily schedules, a sleep timer, a night brightness limit and launch at login are
 available from the menu. English and Spanish follow the macOS app-language
 preference; other languages fall back to English.
+
+## Using the app
+
+Click the lightbulb in the menu bar, then hover over a mode to open its submenu.
+Click a choice to apply it. Open the menu again to adjust its settings; brightness,
+speed and other controls are grouped below the choices. A checkmark identifies
+the selected option, and color samples help distinguish colors and scenes.
+
+- **A fixed color:** open **Color**, choose a color, then use **Brightness** or
+  **Smoothing** at the bottom of the submenu. **Scenes** applies a preset color
+  and brightness together.
+- **An animation:** open **Animation** and choose an effect. Use **Palette**,
+  **Animation color**, **Speed** and **Brightness** to customize it. Effects
+  animate the whole strip.
+- **Screen sync:** open **Ambient**, choose how to sample the screen, and grant
+  capture permission when macOS asks. Use **Display** to select your screen;
+  adjust color intensity, smoothing and brightness in the same submenu.
+- **Music:** play audio on your Mac, open **Music**, and select a response style.
+  Under **Source**, choose Mac audio or the microphone. Grant the requested
+  permission and adjust **Sensitivity** and **Brightness**. The pulse color
+  setting is for the single-color pulse style.
+- **Notification flashes:** open **Notifications** and enable **Light up for
+  notifications**. Allow Accessibility access when prompted, then try **Test RGB
+  flash**. The flash restores the preceding lighting state afterward. Automatic
+  detection is experimental and only detects visible notification banners.
+- **Timers and schedules:** use **Turn off after…** for a sleep timer, or
+  **Settings → Schedules → Add daily schedule** to choose an hour, minute and
+  scene or power-off action. Click **Add** to save the schedule. The app must be
+  running and the Mac awake for schedules to run.
+- **Stop or quit:** **Turn lights off** pauses lighting and capture while keeping
+  the app available. **Quit Desktop LEDs** requests lights off and disconnects.
+
+### If something does not work
+
+- **No lights found:** check Bluetooth permission in System Settings, bring the
+  strip closer, and close any phone app connected to it. Search again from
+  **Settings → Lights**. Other controller models may not be compatible.
+- **Connected but no color change:** turn the active mode off, switch the
+  protocol under **Settings → Lights → Protocol**, then choose a fixed color.
+  The tested ELK-BLEDOM controller uses **Alternate**.
+- **Ambient or Music does not react:** check the selected display or audio source
+  and the capture permissions in System Settings → Privacy & Security. If macOS
+  asks you to quit and reopen the app after granting permission, do so. Protected
+  media may prevent capture.
+- **No notification flash:** try the manual RGB test first. For automatic alerts,
+  check Accessibility permission and whether Focus is hiding notification banners.
+
+Menu labels follow the macOS app language. The paths above use English labels.
 
 ## Compatibility and beta limitations
 
@@ -102,10 +152,51 @@ Please omit private notifications, screenshots and unredacted device identifiers
 
 ## Build from source
 
-Install Xcode with a macOS 14+ SDK, then run `swift test` and `swift build -c release`.
-To create a signed app, set `CODE_SIGN_IDENTITY` to your Developer ID identity and
-`CODE_SIGN_KEYCHAIN` to your signing Keychain path, then run `bash scripts/build-app.sh`.
-The output is `build/Desktop LEDs.app`. See [RELEASING.md](docs/RELEASING.md).
+### Prerequisites
+
+- macOS 14 or later and Git.
+- Xcode with Swift 5.9 or later and a macOS 14+ SDK. Open Xcode once to complete
+  its installation, and select its command-line tools in Xcode settings.
+- Internet access for Swift Package Manager to fetch Sparkle, the update framework.
+
+### Clone, test and compile
+
+```sh
+git clone https://github.com/gitlares/fs-desktop-leds.git
+cd fs-desktop-leds
+swift package resolve
+swift test
+swift build -c release
+swift build -c release --show-bin-path
+```
+
+The last command prints the directory containing the `DesktopLEDs` executable.
+Swift Package Manager fetches dependencies automatically; there is no separate
+Python or Node.js installation step. Compiling and running the tests does not
+require a paid Apple Developer account. A source build targets the current Mac's
+architecture; the published beta has only been packaged for Apple Silicon.
+
+### Create a signed application bundle
+
+Use the bundled app for normal operation so macOS can associate Bluetooth,
+capture permissions and Sparkle with a stable app identity. The packaging script
+requires your own **Developer ID Application** certificate and its private key
+in Keychain. Obtaining that certificate requires Apple Developer Program membership.
+
+```sh
+export CODE_SIGN_IDENTITY="YOUR_DEVELOPER_ID_CERTIFICATE_SHA1"
+export CODE_SIGN_KEYCHAIN="/absolute/path/to/your-signing.keychain-db"
+bash scripts/build-app.sh
+open "build/Desktop LEDs.app"
+```
+
+Replace the placeholders with your own signing details. The script embeds Sparkle,
+resources and localizations, then signs the nested components and app. It does not
+notarize the app. Do not commit certificates, private keys or credentials.
+
+For notarization, DMG packaging and publishing signed updates, see
+[RELEASING.md](docs/RELEASING.md). If you distribute a fork, use your own bundle
+identifier, update feed and Sparkle signing key instead of this project's feed.
 
 `LEDProtocol` contains packets and rendering/audio analysis. `LightingController`
 coordinates modes; `MediaCaptureController` owns capture; `BluetoothController`
