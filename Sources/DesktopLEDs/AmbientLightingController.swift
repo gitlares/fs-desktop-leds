@@ -1,6 +1,7 @@
 import AVFoundation
 import AppKit
 import Combine
+import CoreGraphics
 import CoreMedia
 import CoreVideo
 import LEDProtocol
@@ -61,6 +62,7 @@ final class MediaCaptureController: NSObject, ObservableObject, SCStreamDelegate
         let token = generation
         starting = true
         status = L("Starting capture…", "Preparando captura…")
+        let requiresScreenCapture = screen || (audio && source == .system)
         Task { [self] in
             do {
                 let receiver = MediaOutput(
@@ -95,7 +97,13 @@ final class MediaCaptureController: NSObject, ObservableObject, SCStreamDelegate
                     microphone = engine
                     try engine.start()
                 }
-                if screen || (audio && source == .system) {
+                if requiresScreenCapture {
+                    // Ask TCC explicitly from the user-initiated mode change.
+                    // ScreenCaptureKit can otherwise only return an opaque
+                    // failure after permission changes in System Settings.
+                    guard CGPreflightScreenCaptureAccess() || CGRequestScreenCaptureAccess() else {
+                        throw CaptureError.screenCaptureDenied
+                    }
                     let content = try await SCShareableContent.excludingDesktopWindows(
                         false, onScreenWindowsOnly: true)
                     guard generation == token else { return }
@@ -148,11 +156,15 @@ final class MediaCaptureController: NSObject, ObservableObject, SCStreamDelegate
             } catch {
                 guard generation == token else { return }
                 stop()
-                needsPermission =
-                    (error as? CaptureError) == .microphoneDenied || (error as NSError).code == -3801
-                status = L(
-                    "Could not start: \(error.localizedDescription)",
-                    "No se pudo iniciar: \(error.localizedDescription)")
+                let screenDenied = requiresScreenCapture && !CGPreflightScreenCaptureAccess()
+                needsPermission = (error as? CaptureError) == .microphoneDenied || screenDenied
+                status = screenDenied
+                    ? L(
+                        "Screen Recording permission is required. If you just enabled it, quit and reopen Desktop LEDs.",
+                        "Se necesita permiso de Grabación de pantalla. Si acabas de activarlo, cierra y abre Desktop LEDs.")
+                    : L(
+                        "Could not start: \(error.localizedDescription)",
+                        "No se pudo iniciar: \(error.localizedDescription)")
                 onFailure?()
             }
         }
@@ -169,12 +181,15 @@ final class MediaCaptureController: NSObject, ObservableObject, SCStreamDelegate
     }
 }
 private enum CaptureError: LocalizedError {
-    case microphoneDenied, noMicrophone, noDisplay
+    case microphoneDenied, screenCaptureDenied, noMicrophone, noDisplay
     var errorDescription: String? {
         switch self {
         case .microphoneDenied:
             return L(
                 "Allow microphone access in System Settings.", "Permite el micrófono en Ajustes del Sistema.")
+        case .screenCaptureDenied:
+            return L(
+                "Allow Screen Recording in System Settings.", "Permite Grabación de pantalla en Ajustes del Sistema.")
         case .noMicrophone: return L("No microphone is available.", "No hay un micrófono disponible.")
         case .noDisplay: return L("No display is available.", "No hay una pantalla disponible.")
         }
