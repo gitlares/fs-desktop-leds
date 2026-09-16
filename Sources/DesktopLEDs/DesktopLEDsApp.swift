@@ -44,7 +44,7 @@ struct MenuControls: View {
             { model.isOn ? model.powerOff() : model.powerOn() }
             .disabled(!model.bluetooth.ready)
             Divider()
-            Menu("Color") {
+            Menu(modeTitle("Color", selected: model.settings.mode == .solid && !selectedScene)) {
                 ForEach(colors, id: \.0) { name, hex in
                     MenuChoice(
                         name, selected: model.settings.mode == .solid && model.settings.hex == hex, hex: hex
@@ -58,11 +58,12 @@ struct MenuControls: View {
                 brightnessMenu
                 smoothingMenu
             }.disabled(!model.bluetooth.ready)
-            Menu(L("Scenes", "Escenas")) {
+            Menu(modeTitle(L("Scenes", "Escenas"), selected: selectedScene)) {
                 ForEach(LightScene.all) { scene in
                     MenuChoice(
                         scene.name,
-                        selected: model.settings.mode == .solid && model.settings.hex == scene.hex,
+                        selected: model.settings.mode == .solid && model.settings.hex == scene.hex
+                            && model.settings.brightness == scene.brightness,
                         hex: scene.hex
                     ) { model.scene(scene) }
                 }
@@ -71,7 +72,7 @@ struct MenuControls: View {
                 brightnessMenu
                 smoothingMenu
             }.disabled(!model.bluetooth.ready)
-            Menu(L("Animation", "Animación")) {
+            Menu(modeTitle(L("Animation", "Animación"), selected: model.settings.mode == .animation)) {
                 ForEach(AnimationStyle.allCases) { animation in
                     MenuChoice(
                         animation.title,
@@ -111,7 +112,7 @@ struct MenuControls: View {
                 }
                 brightnessMenu
             }.disabled(!model.bluetooth.ready)
-            Menu("Ambient") {
+            Menu(modeTitle("Ambient", selected: model.settings.mode == .ambient)) {
                 ForEach(ScreenColorStyle.allCases) { style in
                     MenuChoice(
                         style.title,
@@ -131,7 +132,7 @@ struct MenuControls: View {
                 smoothingMenu
                 brightnessMenu
             }.disabled(!model.bluetooth.ready)
-            Menu(L("Music", "Música")) {
+            Menu(modeTitle(L("Music", "Música"), selected: model.settings.mode == .music)) {
                 ForEach(MusicStyle.allCases) { style in
                     MenuChoice(
                         style.title, selected: model.settings.mode == .music && model.settings.music == style
@@ -162,7 +163,7 @@ struct MenuControls: View {
                             : L("Waiting for audio…", "Esperando audio…"))
                 }
             }.disabled(!model.bluetooth.ready)
-            Menu(L("Game", "Juego")) {
+            Menu(modeTitle(L("Game", "Juego"), selected: model.settings.mode == .game)) {
                 ForEach(GameTheme.allCases) { theme in
                     MenuChoice(
                         theme.title,
@@ -261,6 +262,15 @@ struct MenuControls: View {
             Button(L("Quit Desktop LEDs", "Salir de Desktop LEDs")) { NSApplication.shared.terminate(nil) }
                 .keyboardShortcut("q")
         }
+    }
+    private var selectedScene: Bool {
+        model.settings.mode == .solid
+            && LightScene.all.contains {
+                $0.hex == model.settings.hex && $0.brightness == model.settings.brightness
+            }
+    }
+    private func modeTitle(_ title: String, selected: Bool) -> String {
+        model.isOn && selected ? "\(title)  ✓" : title
     }
     private var connectionMenu: some View {
         Menu(L("Lights", "Luces")) {

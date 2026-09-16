@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// A native menu checkmark with an optional, non-template color sample.
+/// A menu action with a persistent selection mark and optional color sample.
 struct MenuChoice: View {
     let title: String
     let selected: Bool
@@ -16,15 +16,15 @@ struct MenuChoice: View {
     }
 
     var body: some View {
-        Toggle(isOn: Binding(get: { selected }, set: { _ in action() })) {
+        Button(action: action) {
             if let hex {
                 Label {
-                    Text(title)
+                    Text(selected ? "\(title)  ✓" : title)
                 } icon: {
                     Image(nsImage: ColorSwatch.image(hex: hex)).renderingMode(.original)
                 }
             } else {
-                Text(title)
+                Text(selected ? "\(title)  ✓" : title)
             }
         }
     }
