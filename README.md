@@ -1,110 +1,122 @@
-# fs-desktop-leds
+# FS Desktop LEDs
 
-Native macOS utility for controlling ELK-BLEDOM Bluetooth LED lights and mirroring the primary display's average color.
+**A little light for your workspace.**
 
-**Status:** macOS MVP implemented and locally buildable. The target desk responds through the alternate ELK-BLEDOM protocol.
+Control ELK-BLEDOM desk lights from the macOS menu bar. Pick a color or scene,
+follow your screen, or turn music into light.
 
-## First MVP
+[Download the beta](https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1)
+· [Website](https://gitlares.github.io/fs-desktop-leds/)
+· [Report a test](https://github.com/gitlares/fs-desktop-leds/issues/new/choose)
+· [♥ Support the project](https://www.paypal.com/donate/?hosted_button_id=7RDCBR3QXXEMJ)
 
-- Discover nearby ELK-BLEDOM devices using CoreBluetooth.
-- Let the user select and connect to their light controller.
-- Control power, RGB color, and brightness.
-- Show Bluetooth permission, connection, and error states.
-- Handle disconnects without continuous scanning or busy retry loops.
+## Why I built it
 
-Initial test hardware: an Apple Silicon M3 MacBook Pro and a standing desk whose LED controller advertises as `ELK-BLEDOM` and is currently controlled with duoCo Strip.
+I bought a desk a year ago, and its LED lights could only be controlled from my
+phone. I'm not a gamer. I just wanted to add a nice touch to the place where I
+work, without reaching for another device every time.
 
-## Technology
+FS Desktop LEDs puts those controls in the Mac's menu bar. FS stands for
+**Fast and Simple**. That's the idea I want to keep.
 
-- Swift and SwiftUI for the macOS application.
-- CoreBluetooth for Bluetooth Low Energy communication.
-- ScreenCaptureKit for screen synchronization.
+— Daniel Lares
 
-Keep the Bluetooth protocol, device connection, and interface separate. Linux support is a future goal; no Rust or Qt dependency is required for the macOS MVP.
+## Install
 
-### Driver architecture
+The first beta is for **Apple Silicon Macs running macOS 14 or later**.
 
-The app-level control vocabulary is deliberately small: power, RGB color, and brightness. Each controller family is represented by a `LightDriver`, which is responsible for three things: deciding whether it supports an advertised device name, declaring its BLE write characteristic, and encoding the common controls into device-specific packets.
+1. Download the DMG from [GitHub Releases](https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1).
+2. Open it and drag **Desktop LEDs** into **Applications**.
+3. Open the app and click the lightbulb in the menu bar.
+4. Choose **Settings → Lights → Search for lights**, then select your strip.
+5. Pick a color. If it does not respond, try **Settings → Lights → Protocol → Alternate** with the active mode off.
 
-`DriverCatalog` is the only registration point for built-in drivers. CoreBluetooth never contains vendor names, UUIDs, or packet layouts, and SwiftUI only speaks in common controls. To add a controller family, implement `LightDriver`, add it to the catalog, and write driver-level tests; the discovery, reconnection, queueing, UI, and future ambient engine remain unchanged.
+Close the phone's lighting app if it is holding the Bluetooth connection.
+The app has no main window or Dock icon. Menus open sideways when you hover over
+a mode; its settings appear below its choices.
 
-## Next: screen ambient lighting
+## Modes
 
-- Support selecting displays or regions and handle display configuration changes.
-- Analyze small frames at a bounded rate, smooth color transitions, and limit Bluetooth updates.
-- Pause capture when synchronization is disabled or the lights are disconnected.
-- Measure CPU, memory, and incremental energy use on real hardware before making performance claims.
+| Mode | What it does |
+| --- | --- |
+| Color | Named colors, brightness and smooth transitions. |
+| Scenes | 14 presets for work, evenings, movies and more. |
+| Animation | Rainbow, breathing, fade, alternating colors, blink and strobe. |
+| Ambient | Dominant screen color, average color or screen edges; choose a display. |
+| Music | Frequency colors, changing colors on detected beats, or a single-color volume pulse. |
+| Game | Screen color with audio accents and optional palettes. No game telemetry. |
+| Notifications | Experimental RGB flashes for visible macOS notification banners. |
 
-Treat the desk strip as one RGB zone until hardware testing establishes otherwise. Segment control and Bluetooth update rates are not yet verified.
+Daily schedules, a sleep timer, a night brightness limit and launch at login are
+available from the menu. English and Spanish follow the macOS app-language
+preference; other languages fall back to English.
 
-### Ambient mode
+## Compatibility and beta limitations
 
-Ambient mode uses ScreenCaptureKit and captures only the primary display selected by macOS. It reduces that display to one color. The capture layer retains `displayID`, and the mixer remains independent of ScreenCaptureKit so a later placement-aware multi-display mode can be added without changing Bluetooth drivers.
+- **Tested hardware:** ELK-BLEDOM, alternate protocol. Whole-strip colors,
+  brightness and software alternation were confirmed on the development desk.
+- **Other hardware:** unverified. A matching Bluetooth name does not prove compatibility.
+- **LED addressing:** effects change the whole strip together. Individual pixels
+  and independent segments are not supported by this release.
+- **Firmware effects:** internal fade packets did not animate the test strip;
+  normal animations generate RGB commands from the Mac instead.
+- **Music:** uses Mac audio or the selected microphone. More tracks and output
+  devices need testing. Protected content may restrict capture.
+- **Notifications:** Accessibility detects visible banners. Focus-hidden notices,
+  short-lived banners and unfamiliar macOS layouts may be missed. Message contents
+  are not read. Use **Notifications → Test RGB flash** to preview the effect.
+- **Schedules:** need the app running and the Mac awake. Scene schedules also need
+  connected lights. Missed schedules are not replayed after sleep.
+- **Quitting:** normal app termination requests power-off. Force quit, a crash or
+  a lost connection cannot guarantee that request arrives.
+- **State:** the controller does not report its physical power/color state.
+  Changes made with another controller cannot be read back.
 
-Capture is deliberately bounded: the display is scaled to 64 pixels wide, sampled at most at 15 fps, has a queue depth of 3, and never captures audio. The sampler favors screen edges and saturated colors so a single-zone strip has a more visible effect. The mixer moves 12% toward the sampled color per frame, ignores imperceptibly small RGB differences, and outputs at most 15 Bluetooth updates per second. It stops when the toggle is disabled or the light disconnects.
+See the [beta notes](docs/releases/0.1.0-beta.1.md) and
+[performance measurements](docs/PERFORMANCE.md) for validation details.
 
-The first activation requires macOS Screen Recording permission. If macOS asks, grant it to Desktop LEDs; if it was previously denied, the Ambient section provides **Abrir ajustes de Grabación de pantalla**. Enable Desktop LEDs there, then quit and reopen the app before activating Ambient again. The implementation does not record, save, upload, or transmit screen images. It reduces each frame locally to one color and discards the pixels immediately.
+## Permissions and privacy
 
-## Development
+Bluetooth controls lights. Ambient and Mac audio use screen and system-audio
+capture permission. Microphone access is requested only for that source.
+Notifications ask for Accessibility only when enabled.
 
-Requires macOS 14 or later and Xcode 15 or later (Swift 5.9+). No third-party package dependencies.
+Samples are processed locally and discarded. There is no account, analytics,
+advertising or media upload. Read the [privacy notes](PRIVACY.md).
 
-```sh
-swift test
-bash scripts/build-app.sh
-open "build/Desktop LEDs.app"
-```
+## Updates
 
-The script builds an optimized release executable and packages it as a native `.app`. To preserve Bluetooth and Screen Recording permission across rebuilds, sign with a stable Developer ID identity and its exact keychain:
+Choose **Check for Updates…** in the menu. Sparkle verifies signed update archives
+before installation. It starts only when requested; automatic checks, downloads and
+system-profile reporting are disabled. The updater contacts GitHub for the feed
+and download. There is no telemetry. See [PRIVACY.md](PRIVACY.md).
 
-```sh
-CODE_SIGN_IDENTITY="Developer ID Application: Daniel Lares (8VF4WQL462)" \\
-CODE_SIGN_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db" \\
-bash scripts/build-app.sh
-```
+## Testers welcome
 
-The script refuses to make an ad-hoc build because its changing identity makes macOS ask for permissions again. Direct distribution uses Developer ID and no App Sandbox entitlement; an eventual App Store build is a separate flow and requires Apple Distribution plus a provisioning profile. This is a local development build, not a notarized release or an App Store submission.
+Working setups are as useful as bug reports. Please include your Mac model,
+macOS version, advertised device name, selected protocol and mode. For music,
+include the audio source/output; for reconnection issues, include sleep/wake steps.
 
-Open `Package.swift` in Xcode to edit the source. Launch the bundled app using the instructions above for Bluetooth permission testing, rather than the bare command-line executable.
+[Open a test report](https://github.com/gitlares/fs-desktop-leds/issues/new/choose).
+Please omit private notifications, screenshots and unredacted device identifiers.
 
-### Connect and control
+## Build from source
 
-1. Power the desk's LED controller and close duoCo Strip on the iPhone to release its connection.
-2. Open Desktop LEDs and click **Buscar luces**. Allow the macOS Bluetooth prompt. The MVP also shows nearby unsupported BLE advertisements to make controller discovery diagnosable; only supported devices can be connected.
-3. Select **ELK-BLEDOM** and click **Conectar**. No prior pairing in System Settings is required for the expected controller.
-4. Test **Encender**, the color presets, brightness, and **Apagar**.
-5. If it connects but does not respond, expand **Compatibilidad y conexión**, select the alternate protocol, and try a color again. The selected variant applies immediately and is saved per device. This variant sends the documented ELK-BLEDOM frames beginning `7E 04 04` for power and `7E 07 05 03` for RGB.
+Install Xcode with a macOS 14+ SDK, then run `swift test` and `swift build -c release`.
+To create a signed app, set `CODE_SIGN_IDENTITY` to your Developer ID identity and
+`CODE_SIGN_KEYCHAIN` to your signing Keychain path, then run `bash scripts/build-app.sh`.
+The output is `build/Desktop LEDs.app`. See [RELEASING.md](docs/RELEASING.md).
 
-The app remembers the selected device after service discovery succeeds and attempts reconnection on subsequent launches. An unexpected disconnect triggers up to three retries with increasing delays. Use **Desconectar** to release the lights for the phone, or **Olvidar dispositivo** to remove the saved selection.
+`LEDProtocol` contains packets and rendering/audio analysis. `LightingController`
+coordinates modes; `MediaCaptureController` owns capture; `BluetoothController`
+owns discovery and paced writes. New drivers belong in `LightDriver` and
+`DriverCatalog` and require hardware validation.
 
-The menu bar provides power controls and can reopen the control window. UI values are requested settings, not live readings from the strip. A Bluetooth write does not establish that the lights visibly changed.
+## Contributing and license
 
-### Resource behavior
+[Contributions](CONTRIBUTING.md) are welcome. Keep the menu simple and avoid new
+runtime dependencies. MIT licensed; see [LICENSE](LICENSE).
 
-- Discovery stops after 10 seconds, on connection, or on cancellation.
-- Connection and service discovery have a 15-second timeout.
-- Pending writes are coalesced by command type and paced at no more than 10 per second; the queue holds at most three commands.
-- Brightness is sent after releasing the slider. Color changes are coalesced during interaction.
-- No polling timer, screen capture, network access, or persistent discovery in manual-control mode.
-- Ambient mode uses bounded, low-resolution ScreenCaptureKit streams only while enabled.
-- Sleep cancels active work; wake can reconnect the selected device.
-
-The CPU, memory, and energy budget has not yet been benchmarked.
-
-### Validation
-
-Automated tests cover reference wire packets, brightness bounds, burst coalescing, and dropping stale commands when switching off. They do not replace a hardware test.
-
-Manual checks before a release: permission denied, Bluetooth off/on, scan cancellation and empty results, physical color/power/brightness response, reconnect after disconnect and sleep, remembering/forgetting the device, and reopening controls from the menu bar.
-
-## Protocol references
-
-- [TheSylex/ELK-BLEDOM-bluetooth-led-strip-controller](https://github.com/TheSylex/ELK-BLEDOM-bluetooth-led-strip-controller)
-- [dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom)
-- [qanshangi/duoCoStrip](https://github.com/qanshangi/duoCoStrip)
-
-These are research references, not bundled runtime dependencies. The command layouts use the MIT-licensed `elkbledom` model definitions; attribution and its license are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## License
-
-[MIT](LICENSE).
+[Glow](https://github.com/kshivam654/glow) informed the feature inventory. This is
+an independent Swift implementation. Packet references and attribution are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

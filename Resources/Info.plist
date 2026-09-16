@@ -1,15 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-    <key>CFBundleExecutable</key><string>DesktopLEDs</string>
-    <key>CFBundleIdentifier</key><string>com.gitlares.desktop-leds</string>
-    <key>CFBundleName</key><string>Desktop LEDs</string>
-    <key>CFBundleDisplayName</key><string>Desktop LEDs</string>
-    <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.1.0</string>
-    <key>CFBundleVersion</key><string>1</string>
-    <key>LSMinimumSystemVersion</key><string>14.0</string>
-    <key>NSHighResolutionCapable</key><true/>
-    <key>NSBluetoothAlwaysUsageDescription</key><string>Desktop LEDs necesita Bluetooth para encontrar y controlar las luces de tu escritorio.</string>
-    <key>NSScreenCaptureUsageDescription</key><string>Desktop LEDs necesita leer colores de tus pantallas para sincronizar las luces del escritorio.</string>
-</dict></plist>
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>DesktopLEDs</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.gitlares.desktop-leds</string>
+	<key>CFBundleName</key>
+	<string>Desktop LEDs</string>
+	<key>CFBundleDisplayName</key>
+	<string>Desktop LEDs</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Desktop LEDs uses the microphone only when you select it as the source for sound-reactive lighting.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Desktop LEDs needs Bluetooth to find and control your desk lights.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>Desktop LEDs processes screen colors and Mac audio to sync your lights without saving recordings.</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+	</array>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>SUFeedURL</key>
+	<string>https://gitlares.github.io/fs-desktop-leds/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUSendProfileInfo</key>
+	<false/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUShowReleaseNotes</key>
+	<false/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SUPublicEDKey</key>
+	<string>3IlGRz6D3SK5ZlzQUE6SYeij88Lr7dxa1vuUFmuEEtg=</string>
+	<key>SURequireSignedFeed</key>
+	<true/>
+</dict>
+</plist>

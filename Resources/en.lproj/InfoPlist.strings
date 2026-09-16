@@ -1,0 +1,3 @@
+"NSMicrophoneUsageDescription" = "Desktop LEDs uses the microphone only when you select it as the source for sound-reactive lighting.";
+"NSBluetoothAlwaysUsageDescription" = "Desktop LEDs needs Bluetooth to find and control your desk lights.";
+"NSScreenCaptureUsageDescription" = "Desktop LEDs processes screen colors and Mac audio to sync your lights without saving recordings.";

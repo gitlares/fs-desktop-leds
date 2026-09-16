@@ -1,0 +1,49 @@
+name: Beta test report
+description: Tell us what works, or help reproduce a problem.
+title: "[Beta] "
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for testing. Working setups are welcome too. Omit private notifications and device identifiers."
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: "0.1.0-beta.1"
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model and macOS version
+    validations:
+      required: true
+  - type: input
+    id: lights
+    attributes:
+      label: Lights and protocol
+      description: Advertised Bluetooth name, desk or strip brand, and Standard or Alternate protocol.
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Working setup
+        - Bug
+        - Unsupported device
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What did you test?
+      description: Mode, steps, expected behavior and actual result. For music, name the audio source and output.
+    validations:
+      required: true
+  - type: textarea
+    id: lifecycle
+    attributes:
+      label: Reconnect, sleep and quit
+      description: If tested, does it recover after waking or reconnecting? Do lights turn off on normal quit?

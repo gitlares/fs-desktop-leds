@@ -1,0 +1,3 @@
+"NSMicrophoneUsageDescription" = "Desktop LEDs usa el micrófono solo si eliges esa fuente para animar las luces con sonido.";
+"NSBluetoothAlwaysUsageDescription" = "Desktop LEDs necesita Bluetooth para encontrar y controlar las luces de tu escritorio.";
+"NSScreenCaptureUsageDescription" = "Desktop LEDs procesa colores de pantalla y audio del Mac para sincronizar las luces, sin guardar grabaciones.";

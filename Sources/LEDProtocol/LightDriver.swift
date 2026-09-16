@@ -6,12 +6,17 @@ public protocol LightDriver: Sendable {
     var id: String { get }
     var displayName: String { get }
     var writeCharacteristicUUID: UUID { get }
+    var diagnosticEffects: [LEDEffect] { get }
 
     /// Determines whether an advertised name is a candidate for this driver.
     func matches(advertisedName: String) -> Bool
 
     /// Encodes an app-level command for the device's BLE protocol.
     func packet(for command: LEDCommand) -> Data
+}
+
+extension LightDriver {
+    public var diagnosticEffects: [LEDEffect] { [] }
 }
 
 public enum ELKBLEDOMVariant: String, CaseIterable, Sendable {
@@ -28,6 +33,7 @@ public struct ELKBLEDOMDriver: LightDriver, Sendable {
         self.variant = variant
     }
 
+    public var diagnosticEffects: [LEDEffect] { LEDEffect.allCases }
     public var id: String { "elk-bledom.\(variant.rawValue)" }
     public var displayName: String { "ELK-BLEDOM" }
     public var writeCharacteristicUUID: UUID { UUID(uuidString: "0000FFF3-0000-1000-8000-00805F9B34FB")! }
@@ -45,6 +51,13 @@ public struct ELKBLEDOMDriver: LightDriver, Sendable {
             return Data([0x7e, alternate ? 4 : 0, 4, on ? 0xf0 : 0, 0, on ? 1 : 0, 0xff, 0, 0xef])
         case .color(let red, let green, let blue):
             return Data([0x7e, alternate ? 7 : 0, 5, 3, red, green, blue, alternate ? 10 : 0, 0xef])
+        case .effect(let effect):
+            return Data([
+                0x7e, alternate ? 7 : 0, 3, effect.rawValue, 3, alternate ? 255 : 0, alternate ? 255 : 0, 0,
+                0xef,
+            ])
+        case .effectSpeed(let percent):
+            return Data([0x7e, alternate ? 7 : 0, 2, UInt8(min(100, max(0, percent))), 0, 0, 0, 0, 0xef])
         case .brightness(let percent):
             let value = UInt8(min(100, max(0, percent)))
             return alternate

@@ -41,7 +41,8 @@ public struct AmbientColorMixer: Sendable {
         let red = samples.reduce(0.0) { $0 + Double($1.color.red) * $1.weight } / totalWeight
         let green = samples.reduce(0.0) { $0 + Double($1.color.green) * $1.weight } / totalWeight
         let blue = samples.reduce(0.0) { $0 + Double($1.color.blue) * $1.weight } / totalWeight
-        let raw = AmbientRGB(red: UInt8(red.rounded()), green: UInt8(green.rounded()), blue: UInt8(blue.rounded()))
+        let raw = AmbientRGB(
+            red: UInt8(red.rounded()), green: UInt8(green.rounded()), blue: UInt8(blue.rounded()))
         guard let previous else {
             self.previous = raw
             return raw
@@ -49,7 +50,9 @@ public struct AmbientColorMixer: Sendable {
         func blend(_ from: UInt8, _ to: UInt8) -> UInt8 {
             UInt8((Double(from) + (Double(to) - Double(from)) * smoothing).rounded())
         }
-        let mixed = AmbientRGB(red: blend(previous.red, raw.red), green: blend(previous.green, raw.green), blue: blend(previous.blue, raw.blue))
+        let mixed = AmbientRGB(
+            red: blend(previous.red, raw.red), green: blend(previous.green, raw.green),
+            blue: blend(previous.blue, raw.blue))
         self.previous = mixed
         return mixed
     }

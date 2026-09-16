@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FS Desktop LEDs — A little light for your workspace</title>
+    <meta
+      name="description"
+      content="Control ELK-BLEDOM desk lights from your Mac’s menu bar. Colors, scenes, screen sync and music. Free, open source, and looking for beta testers."
+    />
+    <meta name="theme-color" content="#181c1e" />
+    <link rel="canonical" href="https://gitlares.github.io/fs-desktop-leds/" />
+    <meta
+      property="og:title"
+      content="FS Desktop LEDs — A little light for your workspace"
+    />
+    <meta
+      property="og:description"
+      content="Your desk lights, finally on your Mac. A small, free menu bar app. Beta testers welcome."
+    />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:url"
+      content="https://gitlares.github.io/fs-desktop-leds/"
+    />
+    <meta
+      property="og:image"
+      content="https://gitlares.github.io/fs-desktop-leds/icon.png"
+    />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="preview.js" defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "FS Desktop LEDs",
+        "operatingSystem": "macOS 14 or later, Apple Silicon",
+        "applicationCategory": "UtilitiesApplication",
+        "softwareVersion": "0.1.0-beta.1",
+        "url": "https://gitlares.github.io/fs-desktop-leds/",
+        "downloadUrl": "https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1",
+        "license": "https://github.com/gitlares/fs-desktop-leds/blob/main/LICENSE",
+        "author": {
+          "@type": "Person",
+          "name": "Daniel Lares",
+          "url": "https://github.com/gitlares"
+        },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header wrap">
+      <a class="brand" href="./"
+        ><img src="icon.svg" width="34" height="34" alt="" /><span
+          >FS <span class="brand-light">Desktop LEDs</span></span
+        ></a
+      >
+      <nav aria-label="Main navigation">
+        <a href="#story">The story</a><a href="#compatibility">Compatibility</a
+        ><a href="https://github.com/gitlares/fs-desktop-leds">GitHub ↗</a>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="status-dot"></span> A small Mac app · An open beta
+          </p>
+          <h1>A little light.<br />A better<br /><em>workspace.</em></h1>
+          <p class="lede">
+            The LEDs in your desk, right in your Mac’s menu bar. Pick a color,
+            settle into a scene, or let your screen and music set the mood.
+          </p>
+          <div class="hero-actions">
+            <a
+              class="button primary"
+              href="https://github.com/gitlares/fs-desktop-leds/releases/download/v0.1.0-beta.1/FS-Desktop-LEDs-0.1.0-beta.1-arm64.dmg"
+              >Download the Mac beta <span aria-hidden="true">↓</span></a
+            ><a class="text-link" href="#testers">Testers welcome ↗</a>
+          </div>
+          <p class="release-meta">
+            v0.1.0-beta.1 · Apple Silicon · macOS 14+<br />Free & open source ·
+            Signed & notarized
+          </p>
+        </div>
+        <div class="desk-preview" style="--light: #efad73">
+          <div class="wall-glow" aria-hidden="true"></div>
+          <div class="preview-menubar">
+            <span
+              >Finder
+              <span class="menubar-muted"
+                >File &nbsp; Edit &nbsp; View</span
+              ></span
+            ><span class="preview-lamp" aria-hidden="true">☀</span>
+          </div>
+          <div class="preview-menu" aria-label="Interactive color preview">
+            <div class="menu-status">
+              <span class="status-dot"></span> ELK-BLEDOM connected
+            </div>
+            <div class="menu-line">Turn lights off</div>
+            <div class="menu-divider"></div>
+            <div class="menu-line selected">Color <span>›</span></div>
+            <div class="menu-line">Scenes <span>›</span></div>
+            <div class="menu-line">Animation <span>›</span></div>
+            <div class="menu-line">Ambient <span>›</span></div>
+            <div class="menu-line">Music <span>›</span></div>
+            <div class="menu-divider"></div>
+            <div class="menu-line">Notifications <span>›</span></div>
+            <div class="color-submenu">
+              <button type="button" data-color="#efad73" aria-pressed="true">
+                <i style="background: #efad73"></i> Warm white
+                <span class="check">✓</span>
+              </button>
+              <button type="button" data-color="#58c7a0" aria-pressed="false">
+                <i style="background: #58c7a0"></i> Green
+                <span class="check">✓</span>
+              </button>
+              <button type="button" data-color="#719cf1" aria-pressed="false">
+                <i style="background: #719cf1"></i> Blue
+                <span class="check">✓</span>
+              </button>
+              <button type="button" data-color="#c68ff0" aria-pressed="false">
+                <i style="background: #c68ff0"></i> Violet
+                <span class="check">✓</span>
+              </button>
+              <div class="menu-divider"></div>
+              <div class="menu-line small">Brightness · 50% <span>›</span></div>
+            </div>
+          </div>
+          <div class="desk" aria-hidden="true">
+            <div class="monitor">
+              <div class="screen-sun"></div>
+              <div class="screen-horizon"></div>
+            </div>
+            <div class="monitor-stand"></div>
+            <div class="plant"><span></span></div>
+            <div class="desk-edge"></div>
+            <div class="desk-leg left"></div>
+            <div class="desk-leg right"></div>
+          </div>
+          <p class="preview-caption">
+            Try a color above. <span>Illustrated menu preview.</span>
+          </p>
+        </div>
+      </section>
+      <div class="feature-strip wrap">
+        <span>Native Swift</span><span>Menu bar only</span
+        ><span>No telemetry</span><span>English & Spanish</span>
+      </div>
+      <section class="modes wrap" aria-labelledby="modes-title">
+        <div>
+          <p class="eyebrow">Make it yours</p>
+          <h2 id="modes-title">From focused mornings<br />to one more song.</h2>
+        </div>
+        <div class="mode-list">
+          <article>
+            <span class="mode-number">01</span>
+            <div>
+              <h3>Pick your light</h3>
+              <p>
+                Named colors, 14 scenes and six animations. Brightness and speed
+                are right at the end of the menu.
+              </p>
+            </div>
+          </article>
+          <article>
+            <span class="mode-number">02</span>
+            <div>
+              <h3>Let the room follow along</h3>
+              <p>
+                Ambient follows your screen. Music turns bass, mids, treble and
+                detected beats into color, using your Mac’s audio.
+              </p>
+            </div>
+          </article>
+          <article>
+            <span class="mode-number">03</span>
+            <div>
+              <h3>A gentle heads-up</h3>
+              <p>
+                An optional red, green and blue flash for visible notifications,
+                followed by your previous lighting. This feature is
+                experimental.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section id="story" class="story wrap">
+        <p class="eyebrow">Why this exists</p>
+        <h2>
+          “I bought the desk a year ago.<br />The lights still needed my phone.”
+        </h2>
+        <div class="story-copy">
+          <p>
+            I’m not a gamer. I just wanted to make my workspace a little nicer.
+            My desk came with LED lights, but changing them meant reaching for
+            my phone.
+          </p>
+          <p>
+            So I built a small Mac app to put that control where I was already
+            working. A warm color in the evening. A little movement with a song.
+            Something nice at the edge of an ordinary workday.
+          </p>
+          <p>
+            FS stands for <strong>Fast and Simple.</strong> That’s the idea I
+            want to keep.
+          </p>
+          <p class="signature">
+            Daniel Lares <span>· Creator of FS PDF Compressor</span>
+          </p>
+        </div>
+      </section>
+      <section id="compatibility" class="details wrap">
+        <div>
+          <p class="eyebrow">Before you download</p>
+          <h2>A small beta.<br />Clear expectations.</h2>
+          <p class="aside-copy">
+            Built for a specific, useful job. Help us find out which desks and
+            strips it works with.
+          </p>
+        </div>
+        <div class="faq">
+          <details open>
+            <summary>Will it work with my lights?</summary>
+            <p>
+              The tested controller is <strong>ELK-BLEDOM</strong>, using the
+              alternate protocol. Similar names don’t guarantee the same
+              hardware. Other controllers and individual LED addressing are
+              unverified. Current effects change the whole strip together.
+            </p>
+          </details>
+          <details>
+            <summary>What does my Mac need?</summary>
+            <p>
+              An Apple Silicon Mac running macOS 14 or later, with Bluetooth.
+              This first download is for Apple Silicon only. Close the phone’s
+              lighting app if it is holding the Bluetooth connection.
+            </p>
+          </details>
+          <details>
+            <summary>How do I get started?</summary>
+            <p>
+              Open the downloaded disk image, drag Desktop LEDs into
+              Applications, then open it. Click the lightbulb in the menu bar
+              and choose <strong>Settings → Lights → Search for lights</strong>.
+              Connect your strip and choose a color.
+            </p>
+          </details>
+          <details>
+            <summary>Why does it ask for permissions?</summary>
+            <p>
+              Bluetooth controls the strip. Ambient and Mac audio need screen
+              and system-audio capture permission. Microphone access is only
+              needed if you choose that source. Notification flashes need
+              Accessibility. Capture samples are processed locally and
+              discarded.
+            </p>
+          </details>
+          <details>
+            <summary>Updates and telemetry?</summary>
+            <p>
+              There is no telemetry or analytics. Choose
+              <strong>Check for Updates…</strong> to check for a signed update
+              with Sparkle. Automatic checks and downloads are off, and
+              system-profile reporting is disabled. Update requests go to
+              GitHub; your lighting, screen and audio data stay on your Mac.
+            </p>
+          </details>
+          <details>
+            <summary>How lightweight is it?</summary>
+            <p>
+              The app is native Swift, with no bundled browser or language
+              runtime. Solid colors stop the animation timer when they settle.
+              Media capture runs only in the modes that need it, with small
+              screen samples and bounded processing.
+            </p>
+            <p>
+              Memory varies by mode and macOS version. See the
+              <a
+                href="https://github.com/gitlares/fs-desktop-leds/blob/main/docs/PERFORMANCE.md"
+                >measured footprint and test conditions</a
+              >.
+            </p>
+          </details>
+          <details>
+            <summary>What should I expect from the beta?</summary>
+            <p>
+              Audio response needs more real-world testing. Notification
+              detection depends on macOS’s visible banners and can miss alerts;
+              it does not see notices hidden by Focus. A normal quit requests
+              lights off. Force quit cannot do that.
+            </p>
+            <p>
+              <a
+                href="https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1"
+                >Read the beta release notes ↗</a
+              >
+            </p>
+          </details>
+        </div>
+      </section>
+      <section id="testers" class="testers wrap">
+        <div>
+          <p class="eyebrow">Testers very welcome</p>
+          <h2>Have a desk with LEDs?<br />Give it a try.</h2>
+          <p>
+            Tell us your Mac model, macOS version and the name your lights
+            advertise. Reports about what works are just as useful as bugs.
+          </p>
+        </div>
+        <div class="tester-actions">
+          <a
+            class="button primary"
+            href="https://github.com/gitlares/fs-desktop-leds/issues/new/choose"
+            >Share a test report ↗</a
+          ><a
+            class="button secondary"
+            href="https://www.paypal.com/donate/?hosted_button_id=7RDCBR3QXXEMJ"
+            >♥ Support the project</a
+          >
+          <p>Always free. Donations are optional.</p>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap">
+      <span
+        >FS Desktop LEDs <span class="footer-muted">by Daniel Lares</span></span
+      >
+      <div>
+        <a href="https://github.com/gitlares/fs-desktop-leds">Source</a
+        ><a
+          href="https://github.com/gitlares/fs-desktop-leds/blob/main/PRIVACY.md"
+          >Privacy</a
+        ><a href="https://gitlares.github.io/fs-pdf-compressor/"
+          >FS PDF Compressor ↗</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>

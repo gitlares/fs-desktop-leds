@@ -13,3 +13,5 @@ xcuserdata/
 *.mobileprovision
 *.provisionprofile
 .codebase-memory/
+
+release/

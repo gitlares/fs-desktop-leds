@@ -1,213 +1,285 @@
+import AVFoundation
+import AppKit
 import Combine
 import CoreMedia
 import CoreVideo
-import Foundation
-import ScreenCaptureKit
 import LEDProtocol
+import ScreenCaptureKit
 
-/// macOS capture adapter. It maps the macOS primary display to a tiny stream
-/// and sends its average color through the app-level command callback.
-// Capture callbacks run off-main, but every mutable member is transferred to
-// the main queue before use. The instance can therefore be safely referenced
-// by ScreenCaptureKit's Sendable callback closures.
-final class AmbientLightingController: NSObject, ObservableObject, SCStreamDelegate, @unchecked Sendable {
-    @Published private(set) var isActive = false
-    @Published private(set) var status = "Ambient apagado."
-    @Published private(set) var displayCount = 0
-    @Published private(set) var sampleCount = 0
-    @Published private(set) var lastSample: AmbientRGB?
-    @Published private(set) var sentCount = 0
-    @Published private(set) var needsScreenPermission = false
+struct CaptureDisplay: Identifiable {
+    let id: UInt32
+    let name: String
+}
 
-    private let captureQueue = DispatchQueue(label: "com.gitlares.desktop-leds.capture", qos: .utility)
-    private var streams: [SCStream] = []
-    private var outputs: [ScreenStreamOutput] = []
-    private var samples: [CGDirectDisplayID: DisplayColorSample] = [:]
-    private var mixer = AmbientColorMixer()
-    private var lastSent = Date.distantPast
-    private var lastColor: AmbientRGB?
-    private var commandSink: ((LEDCommand) -> Void)?
+/// Owns one capture session. Generation checks prevent a stopped permission/start
+/// request from reviving capture after switching modes or disconnecting.
+@MainActor
+final class MediaCaptureController: NSObject, ObservableObject, SCStreamDelegate {
+    @Published private(set) var displays: [CaptureDisplay] = []
+    @Published private(set) var status = ""
+    @Published private(set) var running = false
+    @Published private(set) var starting = false
+    @Published private(set) var needsPermission = false
+    var onColor: ((AmbientRGB) -> Void)?
+    var onAudio: ((AudioLevels) -> Void)?
+    var onFailure: (() -> Void)?
+    private var generation = UUID()
+    private var activeStream: SCStream?
+    private var output: MediaOutput?
+    private var microphone: AVAudioEngine?
+    private let queue = DispatchQueue(label: "com.gitlares.desktop-leds.media", qos: .utility)
 
-    // 15 small 64 px samples per second are visually smooth while still
-    // processing only a few thousand pixels and bytes of BLE traffic.
-    private let frameRate = 15
-    private let outputWidth = 64
-
-    func setCommandSink(_ sink: @escaping (LEDCommand) -> Void) {
-        commandSink = sink
-    }
-
-    func start() {
-        guard !isActive else { return }
-        Task { @MainActor [weak self] in
-            await self?.startCapture()
+    func refreshDisplays() async {
+        // CoreGraphics inventory does not trigger Screen Recording permission.
+        displays = NSScreen.screens.compactMap { screen in
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+            else { return nil }
+            return CaptureDisplay(id: number.uint32Value, name: screen.localizedName)
         }
     }
-
     func stop() {
-        let activeStreams = streams
-        streams.removeAll()
-        outputs.removeAll()
-        samples.removeAll()
-        mixer.reset()
-        lastColor = nil
-        isActive = false
-        displayCount = 0
-        sampleCount = 0
-        lastSample = nil
-        sentCount = 0
-        status = "Ambient apagado."
-        needsScreenPermission = false
-        Task {
-            for stream in activeStreams { try? await stream.stopCapture() }
+        generation = UUID()
+        starting = false
+        running = false
+        let old = activeStream
+        activeStream = nil
+        output = nil
+        if let microphone {
+            microphone.inputNode.removeTap(onBus: 0)
+            microphone.stop()
         }
+        microphone = nil
+        if let old { Task { try? await old.stopCapture() } }
+        status = ""
+        needsPermission = false
     }
-
-    @MainActor
-    private func startCapture() async {
-        status = "Solicitando acceso a la pantalla…"
-        do {
-            let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-            guard let primaryDisplay = content.displays.first(where: { $0.displayID == CGMainDisplayID() })
-                ?? content.displays.first else {
-                status = "No hay pantallas disponibles para capturar."
-                return
+    func start(
+        screen: Bool, audio: Bool, source: AudioSource, displayID: UInt32, style: ScreenColorStyle,
+        saturation: Double
+    ) {
+        stop()
+        let token = generation
+        starting = true
+        status = L("Starting capture…", "Preparando captura…")
+        Task { [self] in
+            do {
+                let receiver = MediaOutput(
+                    screenStyle: style, saturation: saturation,
+                    color: { [weak self] color in
+                        Task { @MainActor in
+                            guard let self, self.generation == token else { return }
+                            self.onColor?(color)
+                        }
+                    },
+                    audio: { [weak self] levels in
+                        Task { @MainActor in
+                            guard let self, self.generation == token else { return }
+                            self.onAudio?(levels)
+                        }
+                    })
+                if audio && source == .microphone {
+                    let allowed = await AVCaptureDevice.requestAccess(for: .audio)
+                    guard generation == token else { return }
+                    guard allowed else { throw CaptureError.microphoneDenied }
+                    let engine = AVAudioEngine()
+                    let format = engine.inputNode.outputFormat(forBus: 0)
+                    guard format.channelCount > 0, format.sampleRate > 0 else {
+                        throw CaptureError.noMicrophone
+                    }
+                    engine.inputNode.installTap(onBus: 0, bufferSize: 2048, format: format) { buffer, _ in
+                        guard let data = buffer.floatChannelData else { return }
+                        let samples = Array(
+                            UnsafeBufferPointer(start: data[0], count: Int(buffer.frameLength)))
+                        receiver.acceptAudio(samples, rate: buffer.format.sampleRate)
+                    }
+                    microphone = engine
+                    try engine.start()
+                }
+                if screen || (audio && source == .system) {
+                    let content = try await SCShareableContent.excludingDesktopWindows(
+                        false, onScreenWindowsOnly: true)
+                    guard generation == token else { return }
+                    guard
+                        let display = content.displays.first(where: {
+                            $0.displayID == (displayID == 0 ? CGMainDisplayID() : displayID)
+                        }) ?? content.displays.first
+                    else { throw CaptureError.noDisplay }
+                    let configuration = SCStreamConfiguration()
+                    configuration.width = screen ? 96 : 2
+                    configuration.height = screen ? max(2, 96 * display.height / display.width) : 2
+                    configuration.minimumFrameInterval = CMTime(value: 1, timescale: screen ? 15 : 1)
+                    configuration.queueDepth = 3
+                    configuration.showsCursor = false
+                    configuration.pixelFormat = kCVPixelFormatType_32BGRA
+                    configuration.colorSpaceName = CGColorSpace.sRGB
+                    configuration.capturesAudio = audio && source == .system
+                    configuration.sampleRate = 48000
+                    configuration.channelCount = 2
+                    configuration.excludesCurrentProcessAudio = true
+                    let excluded = content.applications.filter {
+                        $0.bundleIdentifier == Bundle.main.bundleIdentifier
+                    }
+                    let filter = SCContentFilter(
+                        display: display, excludingApplications: excluded, exceptingWindows: [])
+                    let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
+                    // Screen output is drained even for an audio-only session, but not analyzed.
+                    receiver.analyzeScreen = screen
+                    try stream.addStreamOutput(receiver, type: .screen, sampleHandlerQueue: queue)
+                    if configuration.capturesAudio {
+                        try stream.addStreamOutput(receiver, type: .audio, sampleHandlerQueue: queue)
+                    }
+                    try await stream.startCapture()
+                    guard generation == token else {
+                        try? await stream.stopCapture()
+                        return
+                    }
+                    activeStream = stream
+                }
+                guard generation == token else { return }
+                output = receiver
+                starting = false
+                running = true
+                status =
+                    audio
+                    ? (source == .system
+                        ? L("Listening to Mac audio", "Escuchando el audio del Mac")
+                        : L("Listening to the microphone", "Escuchando el micrófono"))
+                    : L("Reading screen colors", "Leyendo colores de pantalla")
+            } catch {
+                guard generation == token else { return }
+                stop()
+                needsPermission =
+                    (error as? CaptureError) == .microphoneDenied || (error as NSError).code == -3801
+                status = L(
+                    "Could not start: \(error.localizedDescription)",
+                    "No se pudo iniciar: \(error.localizedDescription)")
+                onFailure?()
             }
-
-            let excludedApps = content.applications.filter { $0.bundleIdentifier == Bundle.main.bundleIdentifier }
-            var newStreams: [SCStream] = []
-            var newOutputs: [ScreenStreamOutput] = []
-            let configuration = SCStreamConfiguration()
-            configuration.width = outputWidth
-            configuration.height = max(1, Int(Double(outputWidth) * Double(primaryDisplay.height) / Double(primaryDisplay.width)))
-            configuration.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
-            configuration.queueDepth = 3
-            configuration.capturesAudio = false
-            configuration.pixelFormat = kCVPixelFormatType_32BGRA
-
-            let filter = SCContentFilter(display: primaryDisplay, excludingApplications: excludedApps, exceptingWindows: [])
-            let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
-            let output = ScreenStreamOutput(
-                displayID: primaryDisplay.displayID,
-                weight: 1,
-                owner: self
-            )
-            try stream.addStreamOutput(output, type: .screen, sampleHandlerQueue: captureQueue)
-            try await stream.startCapture()
-            newStreams.append(stream)
-            newOutputs.append(output)
-            streams = newStreams
-            outputs = newOutputs
-            displayCount = newStreams.count
-            sampleCount = 0
-            lastSample = nil
-            sentCount = 0
-            isActive = true
-            status = "Ambient activo en el monitor principal."
-            needsScreenPermission = false
-            // Ambient colors are meant to be visible. Set a known physical
-            // state once, then only send bounded color updates per frame.
-            commandSink?(.power(true))
-            commandSink?(.brightness(100))
-        } catch {
-            stop()
-            let denied = error.localizedDescription.localizedCaseInsensitiveContains("declined")
-            needsScreenPermission = denied
-            status = denied
-                ? "macOS no autorizó Grabación de pantalla para Desktop LEDs."
-                : "No se pudo capturar la pantalla: \(error.localizedDescription)"
         }
     }
-
     nonisolated func stream(_ stream: SCStream, didStopWithError error: Error) {
-        DispatchQueue.main.async { [weak self] in
-            self?.stop()
-            self?.status = "La captura se detuvo: \(error.localizedDescription)"
+        Task { @MainActor [weak self] in
+            guard let self, self.activeStream === stream else { return }
+            self.stop()
+            self.status = L(
+                "Capture stopped: \(error.localizedDescription)",
+                "La captura se detuvo: \(error.localizedDescription)")
+            self.onFailure?()
         }
     }
-
-    fileprivate func accept(_ sample: DisplayColorSample, from displayID: CGDirectDisplayID) {
-        guard isActive else { return }
-        samples[displayID] = sample
-        sampleCount += 1
-        guard let mixed = mixer.mix(Array(samples.values)) else { return }
-        lastSample = mixed
-        let now = Date()
-        guard now.timeIntervalSince(lastSent) >= 1.0 / Double(frameRate) else { return }
-        guard lastColor.map({ Self.colorDistance($0, mixed) >= 4 }) ?? true else { return }
-        lastSent = now
-        lastColor = mixed
-        sentCount += 1
-        commandSink?(mixed.command)
-    }
-
-    fileprivate static func averageColor(from buffer: CVPixelBuffer) -> AmbientRGB? {
-        CVPixelBufferLockBaseAddress(buffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
-        guard let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
-        let width = CVPixelBufferGetWidth(buffer)
-        let height = CVPixelBufferGetHeight(buffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
-        guard width > 0, height > 0 else { return nil }
-        let pixels = base.assumingMemoryBound(to: UInt8.self)
-        let samplingStride = 4
-        var blue = 0.0, green = 0.0, red = 0.0, totalWeight = 0.0
-        for y in Swift.stride(from: 0, to: height, by: samplingStride) {
-            let row = pixels.advanced(by: y * bytesPerRow)
-            for x in Swift.stride(from: 0, to: width, by: samplingStride) {
-                let pixel = row.advanced(by: x * 4)
-                let pixelBlue = Double(pixel[0])
-                let pixelGreen = Double(pixel[1])
-                let pixelRed = Double(pixel[2])
-                let maximum = max(pixelRed, pixelGreen, pixelBlue)
-                let minimum = min(pixelRed, pixelGreen, pixelBlue)
-                let saturation = maximum > 0 ? (maximum - minimum) / maximum : 0
-                let isEdge = x < width / 5 || x >= width * 4 / 5 || y < height / 5 || y >= height * 4 / 5
-
-                // A whole-frame average is usually gray during films. Give
-                // colorful pixels and the screen edges more influence, which
-                // is more noticeable on a single-zone strip.
-                let weight = (0.15 + saturation * 1.85) * (isEdge ? 1.35 : 1)
-                blue += pixelBlue * weight
-                green += pixelGreen * weight
-                red += pixelRed * weight
-                totalWeight += weight
-            }
+}
+private enum CaptureError: LocalizedError {
+    case microphoneDenied, noMicrophone, noDisplay
+    var errorDescription: String? {
+        switch self {
+        case .microphoneDenied:
+            return L(
+                "Allow microphone access in System Settings.", "Permite el micrófono en Ajustes del Sistema.")
+        case .noMicrophone: return L("No microphone is available.", "No hay un micrófono disponible.")
+        case .noDisplay: return L("No display is available.", "No hay una pantalla disponible.")
         }
-        guard totalWeight > 0 else { return nil }
-        let averageRed = red / totalWeight
-        let averageGreen = green / totalWeight
-        let averageBlue = blue / totalWeight
-        let gray = (averageRed + averageGreen + averageBlue) / 3
-        func vivid(_ component: Double) -> UInt8 {
-            UInt8(min(255, max(0, (gray + (component - gray) * 1.45).rounded())))
-        }
-        return AmbientRGB(red: vivid(averageRed), green: vivid(averageGreen), blue: vivid(averageBlue))
-    }
-
-    fileprivate static func colorDistance(_ lhs: AmbientRGB, _ rhs: AmbientRGB) -> Int {
-        let red = abs(Int(lhs.red) - Int(rhs.red))
-        let green = abs(Int(lhs.green) - Int(rhs.green))
-        let blue = abs(Int(lhs.blue) - Int(rhs.blue))
-        return red + green + blue
     }
 }
 
-private final class ScreenStreamOutput: NSObject, SCStreamOutput {
-    private let displayID: CGDirectDisplayID
-    private let weight: Double
-    private weak var owner: AmbientLightingController?
-
-    init(displayID: CGDirectDisplayID, weight: Double, owner: AmbientLightingController) {
-        self.displayID = displayID
-        self.weight = weight
-        self.owner = owner
+private final class MediaOutput: NSObject, SCStreamOutput, @unchecked Sendable {
+    var analyzeScreen = true  // configured before registering outputs
+    private let screenStyle: ScreenColorStyle
+    private let saturation: Double
+    private let colorSink: (AmbientRGB) -> Void
+    private let audioSink: (AudioLevels) -> Void
+    private let audioLock = NSLock()
+    private var analyzer = AudioAnalyzer()
+    private var lastAudio = ProcessInfo.processInfo.systemUptime
+    private var accumulated = AudioLevels()
+    init(
+        screenStyle: ScreenColorStyle, saturation: Double, color: @escaping (AmbientRGB) -> Void,
+        audio: @escaping (AudioLevels) -> Void
+    ) {
+        self.screenStyle = screenStyle
+        self.saturation = saturation
+        colorSink = color
+        audioSink = audio
     }
-
-    func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of outputType: SCStreamOutputType) {
-        guard outputType == .screen, let pixelBuffer = sampleBuffer.imageBuffer,
-              let color = AmbientLightingController.averageColor(from: pixelBuffer) else { return }
-        let sample = DisplayColorSample(color: color, weight: weight)
-        DispatchQueue.main.async { [weak owner] in owner?.accept(sample, from: self.displayID) }
+    func acceptAudio(_ samples: [Float], rate: Double) {
+        audioLock.lock()
+        defer { audioLock.unlock() }
+        autoreleasepool {
+            let levels = analyzer.process(samples, sampleRate: rate)
+            accumulated.bass = max(accumulated.bass, levels.bass)
+            accumulated.mid = max(accumulated.mid, levels.mid)
+            accumulated.treble = max(accumulated.treble, levels.treble)
+            accumulated.volume = max(accumulated.volume, levels.volume)
+            let now = ProcessInfo.processInfo.systemUptime
+            if now - lastAudio >= 1.0 / 15 {
+                audioSink(accumulated)
+                accumulated = .init()
+                lastAudio = now
+            }
+        }
+    }
+    func stream(
+        _ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
+        of outputType: SCStreamOutputType
+    ) {
+        guard sampleBuffer.isValid else { return }
+        if outputType == .audio {
+            guard let description = sampleBuffer.formatDescription,
+                let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(description)?.pointee,
+                asbd.mFormatID == kAudioFormatLinearPCM,
+                asbd.mFormatFlags & kAudioFormatFlagIsFloat != 0, asbd.mBitsPerChannel == 32
+            else { return }
+            try? sampleBuffer.withAudioBufferList { list, _ in
+                guard let first = list.first, let raw = first.mData else { return }
+                let channelStride = max(1, Int(first.mNumberChannels))
+                let count = min(Int(sampleBuffer.numSamples), Int(first.mDataByteSize) / 4 / channelStride)
+                let data = raw.assumingMemoryBound(to: Float.self)
+                var mono = [Float]()
+                mono.reserveCapacity(count)
+                for i in 0..<count {
+                    // Average channels in either interleaved or planar Float32 layouts.
+                    var sum: Float = 0
+                    var channels: Float = 0
+                    for buffer in list {
+                        guard let bytes = buffer.mData else { continue }
+                        let width = max(1, Int(buffer.mNumberChannels))
+                        guard (i + 1) * width * 4 <= Int(buffer.mDataByteSize) else { continue }
+                        let floats = bytes.assumingMemoryBound(to: Float.self)
+                        for ch in 0..<width {
+                            sum += floats[i * width + ch]
+                            channels += 1
+                        }
+                    }
+                    mono.append(channels > 0 ? sum / channels : data[i * channelStride])
+                }
+                acceptAudio(mono, rate: asbd.mSampleRate)
+            }
+        } else if outputType == .screen, analyzeScreen {
+            guard
+                let attachments = CMSampleBufferGetSampleAttachmentsArray(
+                    sampleBuffer, createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
+                let rawStatus = attachments.first?[.status] as? Int,
+                SCFrameStatus(rawValue: rawStatus) == .complete,
+                let buffer = sampleBuffer.imageBuffer
+            else { return }
+            CVPixelBufferLockBaseAddress(buffer, .readOnly)
+            defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+            guard let base = CVPixelBufferGetBaseAddress(buffer) else { return }
+            let w = CVPixelBufferGetWidth(buffer)
+            let h = CVPixelBufferGetHeight(buffer)
+            let stride = CVPixelBufferGetBytesPerRow(buffer)
+            let bytes = base.assumingMemoryBound(to: UInt8.self)
+            var pixels = [AmbientRGB]()
+            pixels.reserveCapacity(w * h / 4)
+            for y in Swift.stride(from: 0, to: h, by: 2) {
+                for x in Swift.stride(from: 0, to: w, by: 2) {
+                    if screenStyle == .edges && x > w / 5 && x < w * 4 / 5 && y > h / 5 && y < h * 4 / 5 {
+                        continue
+                    }
+                    let p = bytes.advanced(by: y * stride + x * 4)
+                    pixels.append(.init(red: p[2], green: p[1], blue: p[0]))
+                }
+            }
+            colorSink(ScreenColorAnalyzer.color(pixels: pixels, style: screenStyle, saturation: saturation))
+        }
     }
 }

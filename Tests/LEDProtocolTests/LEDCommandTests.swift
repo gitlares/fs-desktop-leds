@@ -1,7 +1,32 @@
 import XCTest
+
 @testable import LEDProtocol
 
 final class LEDCommandTests: XCTestCase {
+    func testDocumentedEffectPacketsAndSpeedBounds() {
+        let alternate = ELKBLEDOMDriver(variant: .alternate)
+        XCTAssertEqual(
+            Array(alternate.packet(for: .effect(.rgbFade))), [126, 7, 3, 137, 3, 255, 255, 0, 239])
+        XCTAssertEqual(
+            Array(ELKBLEDOMDriver().packet(for: .effect(.redFade))), [126, 0, 3, 139, 3, 0, 0, 0, 239])
+        XCTAssertEqual(alternate.packet(for: .effectSpeed(-1))[3], 0)
+        XCTAssertEqual(alternate.packet(for: .effectSpeed(101))[3], 100)
+    }
+
+    func testReturningToSolidColorDropsQueuedEffectAndPowerOffClearsEverything() {
+        var queue = CommandBuffer()
+        queue.append(.effect(.rgbFade))
+        queue.append(.effectSpeed(30))
+        queue.append(.color(1, 2, 3))
+        XCTAssertEqual(queue.pop(), .effectSpeed(30))
+        XCTAssertEqual(queue.pop(), .color(1, 2, 3))
+        queue.append(.effect(.redFade))
+        queue.append(.effectSpeed(30))
+        queue.append(.power(false))
+        XCTAssertEqual(queue.count, 1)
+        XCTAssertEqual(queue.pop(), .power(false))
+    }
+
     func testStandardWireCommands() {
         let driver = ELKBLEDOMDriver()
         XCTAssertEqual(Array(driver.packet(for: .power(true))), [0x7e, 0, 4, 0xf0, 0, 1, 0xff, 0, 0xef])
@@ -19,9 +44,12 @@ final class LEDCommandTests: XCTestCase {
 
     func testAlternateProfileUsesTheDocumentedELKBLEDOMFrames() {
         let driver = ELKBLEDOMDriver(variant: .alternate)
-        XCTAssertEqual(Array(driver.packet(for: .power(true))), [0x7e, 0x04, 0x04, 0xf0, 0, 1, 0xff, 0, 0xef])
-        XCTAssertEqual(Array(driver.packet(for: .color(255, 0, 0))), [0x7e, 0x07, 0x05, 0x03, 255, 0, 0, 0x0a, 0xef])
-        XCTAssertEqual(Array(driver.packet(for: .brightness(50))), [0x7e, 0x04, 0x01, 50, 1, 0xff, 2, 1, 0xef])
+        XCTAssertEqual(
+            Array(driver.packet(for: .power(true))), [0x7e, 0x04, 0x04, 0xf0, 0, 1, 0xff, 0, 0xef])
+        XCTAssertEqual(
+            Array(driver.packet(for: .color(255, 0, 0))), [0x7e, 0x07, 0x05, 0x03, 255, 0, 0, 0x0a, 0xef])
+        XCTAssertEqual(
+            Array(driver.packet(for: .brightness(50))), [0x7e, 0x04, 0x01, 50, 1, 0xff, 2, 1, 0xef])
     }
 
     func testBrightnessClampsInsteadOfOverflowing() {
@@ -30,7 +58,8 @@ final class LEDCommandTests: XCTestCase {
         XCTAssertEqual(driver.packet(for: .brightness(1000))[3], 100)
 
         let alternate = ELKBLEDOMDriver(variant: .alternate)
-        XCTAssertEqual(Array(alternate.packet(for: .brightness(100))), [0x7e, 4, 1, 100, 1, 0xff, 2, 1, 0xef])
+        XCTAssertEqual(
+            Array(alternate.packet(for: .brightness(100))), [0x7e, 4, 1, 100, 1, 0xff, 2, 1, 0xef])
     }
 
     func testCatalogDetectsOnlyCompatibleLight() {
@@ -68,11 +97,12 @@ final class LEDCommandTests: XCTestCase {
         var mixer = AmbientColorMixer(smoothing: 0.5)
         let first = mixer.mix([
             DisplayColorSample(color: AmbientRGB(red: 255, green: 0, blue: 0), weight: 3),
-            DisplayColorSample(color: AmbientRGB(red: 0, green: 0, blue: 255), weight: 1)
+            DisplayColorSample(color: AmbientRGB(red: 0, green: 0, blue: 255), weight: 1),
         ])
         XCTAssertEqual(first, AmbientRGB(red: 191, green: 0, blue: 64))
 
-        let second = mixer.mix([DisplayColorSample(color: AmbientRGB(red: 0, green: 255, blue: 0), weight: 1)])
+        let second = mixer.mix([DisplayColorSample(color: AmbientRGB(red: 0, green: 255, blue: 0), weight: 1)]
+        )
         XCTAssertEqual(second, AmbientRGB(red: 96, green: 128, blue: 32))
 
         let third = mixer.mix([DisplayColorSample(color: AmbientRGB(red: 0, green: 255, blue: 0), weight: 1)])
