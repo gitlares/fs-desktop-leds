@@ -211,3 +211,8 @@ runtime dependencies. MIT licensed; see [LICENSE](LICENSE).
 [Glow](https://github.com/kshivam654/glow) informed the feature inventory. This is
 an independent Swift implementation. Packet references and attribution are in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## More apps by Daniel Lares
+
+- **[FS PDF Compressor](https://gitlares.github.io/fs-pdf-compressor/)** — Compress PDFs locally on macOS, Windows and Linux. [Source code](https://github.com/gitlares/fs-pdf-compressor).
+- **[FS User Stories](https://gitlares.github.io/fs-user-stories/)** — Organize user stories with local data and optional Git sharing. [Source code](https://github.com/gitlares/fs-user-stories).
