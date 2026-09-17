@@ -303,11 +303,11 @@ struct MenuControls: View {
             }
             ForEach(model.bluetooth.devices) { device in
                 if device.isSupported {
-                    Button(device.name) { model.bluetooth.connect(id: device.id) }
+                    Button(deviceLabel(device)) { model.bluetooth.connect(id: device.id) }
                         .disabled(model.bluetooth.ready || model.bluetooth.connecting)
                 } else {
                     Button(
-                        L("Inspect \(device.name)", "Inspeccionar \(device.name)"),
+                        L("Inspect \(deviceLabel(device))", "Inspeccionar \(deviceLabel(device))"),
                         systemImage: "magnifyingglass") { model.bluetooth.inspect(id: device.id) }
                         .disabled(model.bluetooth.ready || model.bluetooth.connecting)
                 }
@@ -326,6 +326,10 @@ struct MenuControls: View {
                 model.bluetooth.forget()
             }
         }
+    }
+
+    private func deviceLabel(_ device: NearbyLight) -> String {
+        "\(device.name) · \(device.rssi) dBm · \(device.identifierSuffix)"
     }
     private var scheduleMenu: some View {
         Menu(L("Schedules", "Horarios")) {

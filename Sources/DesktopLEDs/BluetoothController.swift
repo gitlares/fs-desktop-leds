@@ -10,6 +10,10 @@ struct NearbyLight: Identifiable {
     let driverName: String?
 
     var isSupported: Bool { driverName != nil }
+
+    /// CoreBluetooth does not always receive the friendly name shown by macOS.
+    /// The suffix and RSSI let people identify an otherwise unnamed controller.
+    var identifierSuffix: String { String(id.uuidString.suffix(6)) }
 }
 
 /// CoreBluetooth delegates and all state mutations use the main queue.
@@ -506,6 +510,7 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         } else {
             devices.append(light)
         }
+        devices.sort { $0.rssi > $1.rssi }
         if wantsConnection, driver != nil, device.identifier == autoTarget { connect(device) }
     }
 
