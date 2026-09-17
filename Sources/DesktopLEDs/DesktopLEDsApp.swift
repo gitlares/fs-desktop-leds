@@ -240,6 +240,21 @@ struct MenuControls: View {
             }
             Menu(L("Settings", "Ajustes")) {
                 connectionMenu
+                Divider()
+                Button(L("Check Screen Recording permission", "Comprobar permiso de Grabación de pantalla")) {
+                    model.requestScreenCapturePermission()
+                }
+                if !model.capture.status.isEmpty { Text(model.capture.status) }
+                if model.capture.needsPermission {
+                    Button(L("Open capture permissions…", "Abrir permisos de captura…")) {
+                        NSWorkspace.shared.open(
+                            URL(
+                                string:
+                                    "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+                            )!)
+                    }
+                }
+                Divider()
                 Toggle(
                     L("Launch at login", "Abrir al iniciar sesión"),
                     isOn: Binding(get: { model.loginEnabled }, set: { model.setLogin($0) }))

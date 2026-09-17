@@ -198,6 +198,11 @@ final class LightingController: ObservableObject {
         scheduleNext()
         scheduleNightTimer()
     }
+
+    func requestScreenCapturePermission() {
+        capture.requestScreenCapturePermission()
+        message = capture.status
+    }
     func choose(_ mode: LightingMode) {
         guard !terminating else { return }
         settings.mode = mode

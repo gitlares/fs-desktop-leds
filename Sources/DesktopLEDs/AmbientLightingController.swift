@@ -38,6 +38,23 @@ final class MediaCaptureController: NSObject, ObservableObject, SCStreamDelegate
             return CaptureDisplay(id: number.uint32Value, name: screen.localizedName)
         }
     }
+
+    /// Lets people verify Screen Recording before connecting a controller.
+    /// This uses the same TCC APIs that Ambient and system-audio modes use.
+    func requestScreenCapturePermission() {
+        if CGPreflightScreenCaptureAccess() {
+            needsPermission = false
+            status = L("Screen Recording permission is ready.", "El permiso de Grabación de pantalla está listo.")
+            return
+        }
+        let granted = CGRequestScreenCaptureAccess()
+        needsPermission = !granted
+        status = granted
+            ? L("Screen Recording permission is ready.", "El permiso de Grabación de pantalla está listo.")
+            : L(
+                "Screen Recording permission is required. If you just enabled it, quit and reopen Desktop LEDs.",
+                "Se necesita permiso de Grabación de pantalla. Si acabas de activarlo, cierra y abre Desktop LEDs.")
+    }
     func stop() {
         generation = UUID()
         starting = false
