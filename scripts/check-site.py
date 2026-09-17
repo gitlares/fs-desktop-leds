@@ -36,6 +36,6 @@ for link in page.links:
         assert url.fragment in page.ids, link
 assert page.scripts == ["preview.js"], "Unexpected script dependency"
 assert "https://www.paypal.com/donate/?hosted_button_id=7RDCBR3QXXEMJ" in page.links
-for path in ("docs/PERFORMANCE.md", "PRIVACY.md", "docs/releases/0.1.0-beta.1.md"):
+for path in ("docs/PERFORMANCE.md", "PRIVACY.md", "docs/releases/0.1.0-beta.2.md"):
     assert (root / path).is_file(), path
 print("Website assets, links and release documents validated.")

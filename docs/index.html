@@ -6,7 +6,7 @@
     <title>FS Desktop LEDs — A little light for your workspace</title>
     <meta
       name="description"
-      content="Control compatible ELK-BLEDOM Bluetooth LED strips and desk lights from your Mac’s menu bar. Colors, scenes, screen sync and music. Free, open source, and looking for beta testers."
+      content="Control compatible ELK-BLEDOM and BJ_LED_M MohuanLED Bluetooth LED strips and desk lights from your Mac’s menu bar. Colors, scenes, screen sync and music. Free and open source."
     />
     <meta name="theme-color" content="#181c1e" />
     <link rel="canonical" href="https://gitlares.github.io/fs-desktop-leds/" />
@@ -16,7 +16,7 @@
     />
     <meta
       property="og:description"
-      content="Compatible ELK-BLEDOM LED strips and desk lights, finally on your Mac. A small, free menu bar app. Beta testers welcome."
+      content="Compatible ELK-BLEDOM and BJ_LED_M MohuanLED LED strips and desk lights, finally on your Mac. A small, free menu bar app."
     />
     <meta property="og:type" content="website" />
     <meta
@@ -37,9 +37,9 @@
         "name": "FS Desktop LEDs",
         "operatingSystem": "macOS 14 or later, Apple Silicon",
         "applicationCategory": "UtilitiesApplication",
-        "softwareVersion": "0.1.0-beta.1",
+        "softwareVersion": "0.1.0-beta.2",
         "url": "https://gitlares.github.io/fs-desktop-leds/",
-        "downloadUrl": "https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1",
+        "downloadUrl": "https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.2",
         "license": "https://github.com/gitlares/fs-desktop-leds/blob/main/LICENSE",
         "author": {
           "@type": "Person",
@@ -71,19 +71,19 @@
           </p>
           <h1>A little light.<br />A better<br /><em>workspace.</em></h1>
           <p class="lede">
-            Compatible ELK-BLEDOM LED strips and desk lights, right in your Mac’s
-            menu bar. Pick a color, settle into a scene, or let your screen and
-            music set the mood.
+            Compatible ELK-BLEDOM and BJ_LED_M / MohuanLED LED strips and desk
+            lights, right in your Mac’s menu bar. Pick a color, settle into a
+            scene, or let your screen and music set the mood.
           </p>
           <div class="hero-actions">
             <a
               class="button primary"
-              href="https://github.com/gitlares/fs-desktop-leds/releases/download/v0.1.0-beta.1/FS-Desktop-LEDs-0.1.0-beta.1-arm64.dmg"
+              href="https://github.com/gitlares/fs-desktop-leds/releases/download/v0.1.0-beta.2/FS-Desktop-LEDs-0.1.0-beta.2-arm64.dmg"
               >Download the Mac beta <span aria-hidden="true">↓</span></a
             ><a class="text-link" href="#testers">Testers welcome ↗</a>
           </div>
           <p class="release-meta">
-            v0.1.0-beta.1 · Apple Silicon · macOS 14+<br />Free & open source ·
+            v0.1.0-beta.2 · Apple Silicon · macOS 14+<br />Free & open source ·
             Signed & notarized
           </p>
         </div>
@@ -99,7 +99,7 @@
           </div>
           <div class="preview-menu" aria-label="Interactive color preview">
             <div class="menu-status">
-              <span class="status-dot"></span> ELK-BLEDOM connected
+              <span class="status-dot"></span> LED strip connected
             </div>
             <div class="menu-line">Turn lights off</div>
             <div class="menu-divider"></div>
@@ -224,21 +224,22 @@
           <p class="eyebrow">Before you download</p>
           <h2>A small beta.<br />Clear expectations.</h2>
           <p class="aside-copy">
-            Built for ELK-BLEDOM controllers. Help us verify which strips,
-            desks and other LED products it works with.
+            Built for ELK-BLEDOM and BJ_LED_M / MohuanLED controllers. Help us
+            verify which other strips, desks and LED products it works with.
           </p>
         </div>
         <div class="faq">
           <details open>
             <summary>Will it work with my lights?</summary>
             <p>
-              Desktop LEDs supports compatible <strong>ELK-BLEDOM</strong>
-              Bluetooth LED controllers, including standalone strips, desk
-              lights and other products that use the chipset. The tested
-              controller uses the alternate protocol. Similar names don’t
-              guarantee the same hardware. Other controllers and individual
-              LED addressing are unverified. Current effects change the whole
-              strip together.
+              Desktop LEDs supports compatible <strong>ELK-BLEDOM</strong> and
+              <strong>BJ_LED_M / MohuanLED</strong> Bluetooth LED controllers,
+              including standalone strips, desk lights and other products that
+              use those chipsets. The tested ELK-BLEDOM controller uses the
+              alternate protocol; BJ_LED_M uses its EE02 channel. Similar names
+              don’t guarantee the same hardware. Other controllers and
+              individual LED addressing are unverified. Current effects change
+              the whole strip together.
               Animations are generated by the Mac. The firmware-effect commands
               tested on our controller had no visible response; other command
               variants remain untested.
@@ -307,7 +308,7 @@
             </p>
             <p>
               <a
-                href="https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1"
+                href="https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.2"
                 >Read the beta release notes ↗</a
               >
             </p>
@@ -317,7 +318,7 @@
       <section id="testers" class="testers wrap">
         <div>
           <p class="eyebrow">Testers very welcome</p>
-          <h2>Have an ELK-BLEDOM strip?<br />Give it a try.</h2>
+          <h2>Have an ELK-BLEDOM or BJ_LED_M strip?<br />Give it a try.</h2>
           <p>
             Tell us your Mac model, macOS version, product type and the name
             your lights advertise. Reports about what works are just as useful

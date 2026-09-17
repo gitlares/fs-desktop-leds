@@ -2,10 +2,11 @@
 
 **A little light for your workspace.**
 
-Control compatible **ELK-BLEDOM Bluetooth LED strips and desk lights** from the
-macOS menu bar. Pick a color or scene, follow your screen, or turn music into light.
+Control compatible **ELK-BLEDOM and BJ_LED_M / MohuanLED Bluetooth LED strips
+and desk lights** from the macOS menu bar. Pick a color or scene, follow your
+screen, or turn music into light.
 
-[Download the beta](https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1)
+[Download the beta](https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.2)
 · [Website](https://gitlares.github.io/fs-desktop-leds/)
 · [Report a test](https://github.com/gitlares/fs-desktop-leds/issues/new/choose)
 · [♥ Support the project](https://www.paypal.com/donate/?hosted_button_id=7RDCBR3QXXEMJ)
@@ -27,11 +28,11 @@ The first beta is for **Apple Silicon Macs running macOS 14 or later**.
 The downloadable app and DMG are Developer ID signed and Apple notarized.
 You do not need Xcode, Python or a developer account to use the download.
 
-1. Download the DMG from [GitHub Releases](https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1).
+1. Download the DMG from [GitHub Releases](https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.2).
 2. Open it and drag **Desktop LEDs** into **Applications**.
 3. Open the app and click the lightbulb in the menu bar.
 4. Choose **Settings → Lights → Search for lights**, then select your strip.
-5. Pick a color. If it does not respond, try **Settings → Lights → Protocol → Alternate** with the active mode off.
+5. Pick a color. ELK-BLEDOM controllers can use **Settings → Lights → Protocol → Alternate** with the active mode off. BJ_LED_M / MohuanLED controllers connect automatically.
 
 Close the phone's lighting app if it is holding the Bluetooth connection.
 The app has no main window or Dock icon. Menus open sideways when you hover over
@@ -103,11 +104,12 @@ Menu labels follow the macOS app language. The paths above use English labels.
 
 ## Compatibility and beta limitations
 
-- **Supported controller family:** ELK-BLEDOM Bluetooth LED controllers. The app
-  can control compatible standalone strips, desk lights and other products that
-  use that chipset.
-- **Tested hardware:** ELK-BLEDOM, alternate protocol. Whole-strip colors,
-  brightness and software alternation were confirmed on the development desk.
+- **Supported controller families:** ELK-BLEDOM and **BJ_LED_M / MohuanLED**
+  Bluetooth LED controllers. The app can control compatible standalone strips,
+  desk lights and other products that advertise one of those names.
+- **Tested hardware:** ELK-BLEDOM, alternate protocol, and BJ_LED_M with its
+  `EE02` MohuanLED channel. Whole-strip colors and software-driven animation
+  were confirmed on the development hardware.
 - **Other hardware:** unverified. A matching Bluetooth name does not prove a
   particular protocol variant will work; report your results so we can expand
   verified compatibility.
@@ -129,7 +131,7 @@ Menu labels follow the macOS app language. The paths above use English labels.
 - **State:** the controller does not report its physical power/color state.
   Changes made with another controller cannot be read back.
 
-See the [beta notes](docs/releases/0.1.0-beta.1.md) and
+See the [beta notes](docs/releases/0.1.0-beta.2.md) and
 [performance measurements](docs/PERFORMANCE.md) for validation details.
 
 ## Permissions and privacy

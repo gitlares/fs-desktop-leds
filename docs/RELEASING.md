@@ -20,7 +20,7 @@ Never put credentials or account details in this repository.
 Set `NOTARY_PROFILE` to that profile, keep the signing variables set, then run:
 
 ```sh
-bash scripts/package-release.sh 0.1.0-beta.1
+bash scripts/package-release.sh 0.1.0-beta.2
 ```
 
 The script submits the app, staples its ticket, creates a signed DMG, notarizes
