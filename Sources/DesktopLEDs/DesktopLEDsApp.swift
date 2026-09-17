@@ -302,8 +302,15 @@ struct MenuControls: View {
                 Button(L("Search for lights", "Buscar luces")) { model.bluetooth.search() }
             }
             ForEach(model.bluetooth.devices) { device in
-                Button(device.name) { model.bluetooth.connect(id: device.id) }
-                    .disabled(!device.isSupported || model.bluetooth.ready || model.bluetooth.connecting)
+                if device.isSupported {
+                    Button(device.name) { model.bluetooth.connect(id: device.id) }
+                        .disabled(model.bluetooth.ready || model.bluetooth.connecting)
+                } else {
+                    Button(
+                        L("Inspect \(device.name)", "Inspeccionar \(device.name)"),
+                        systemImage: "magnifyingglass") { model.bluetooth.inspect(id: device.id) }
+                        .disabled(model.bluetooth.ready || model.bluetooth.connecting)
+                }
             }
             Divider()
             Menu(L("Protocol", "Protocolo")) {

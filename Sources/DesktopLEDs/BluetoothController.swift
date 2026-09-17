@@ -31,6 +31,7 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     @Published private(set) var lastProbeTitle = ""
     @Published private(set) var probeStage = L("No active test.", "Sin prueba activa.")
     @Published private(set) var observations: [String: String] = [:]
+    @Published private(set) var inspecting = false
     private var probeTask: Task<Void, Never>?
     var diagnosticEffects: [LEDEffect] { driver?.diagnosticEffects ?? [] }
     private var diagnosticURL: URL {
@@ -237,7 +238,18 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         connect(device)
     }
 
-    private func connect(_ device: CBPeripheral) {
+    /// Connects only to inventory GATT services and characteristics. It never
+    /// selects a write characteristic or sends vendor packets.
+    func inspect(id: UUID) {
+        guard let device = discovered[id], !connecting, !ready else { return }
+        retry?.cancel()
+        wantsConnection = false
+        autoTarget = nil
+        inspecting = true
+        connect(device, inspectionOnly: true)
+    }
+
+    private func connect(_ device: CBPeripheral, inspectionOnly: Bool = false) {
         stopScan()
         retry?.cancel()
         peripheral = device
@@ -258,23 +270,33 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
             ELKBLEDOMVariant(
                 rawValue: UserDefaults.standard.string(forKey: "profile.\(device.identifier)") ?? "")
             ?? .standard
-        guard
-            let detectedDriver = discoveredDrivers[device.identifier]
-                ?? DriverCatalog.shared.driver(forAdvertisedName: device.name ?? "")
-        else {
+        let detectedDriver =
+            discoveredDrivers[device.identifier]
+            ?? DriverCatalog.shared.driver(forAdvertisedName: device.name ?? "")
+        guard inspectionOnly || detectedDriver != nil else {
             status = L(
                 "No compatible driver found for this device.",
                 "No se identificó un driver compatible para este dispositivo.")
             return
         }
-        driver =
-            detectedDriver.id.hasPrefix("elk-bledom")
-            ? ELKBLEDOMDriver(variant: profile)
-            : detectedDriver
+        if inspectionOnly {
+            // A previous connection may have selected a driver. Never let it
+            // influence a diagnostic connection to an unknown controller.
+            driver = nil
+        } else if let detectedDriver {
+            driver =
+                detectedDriver.id.hasPrefix("elk-bledom")
+                ? ELKBLEDOMDriver(variant: profile)
+                : detectedDriver
+        }
         connecting = true
-        status = L(
-            "Connecting to \(selectedName ?? L("the lights", "las luces"))…",
-            "Conectando con \(selectedName ?? L("the lights", "las luces"))…")
+        status = inspectionOnly
+            ? L(
+                "Inspecting \(selectedName ?? L("the device", "el dispositivo")) without writing commands…",
+                "Inspeccionando \(selectedName ?? L("el dispositivo", "el dispositivo")) sin enviar comandos…")
+            : L(
+                "Connecting to \(selectedName ?? L("the lights", "las luces"))…",
+                "Conectando con \(selectedName ?? L("the lights", "las luces"))…")
         central?.connect(device)
         setTimeout(after: 15) { [weak self] in
             self?.fail(
@@ -308,6 +330,7 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         probeTask?.cancel()
         probeTask = nil
         probing = false
+        inspecting = false
         probeStage = L(
             "Test cancelled when the connection closed.", "Prueba cancelada al cerrar la conexión.")
         timeout?.cancel()
@@ -539,9 +562,19 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
             if service.uuid == CBUUID(string: "180A"), item.properties.contains(.read) {
                 device.readValue(for: item)
             }
-            if item.uuid == CBUUID(string: "FFF4"), item.properties.contains(.notify) {
+            if !inspecting, item.uuid == CBUUID(string: "FFF4"), item.properties.contains(.notify) {
                 device.setNotifyValue(true, for: item)
             }
+        }
+        if inspecting, device.services?.allSatisfy({ $0.characteristics != nil }) == true {
+            timeout?.cancel()
+            connecting = false
+            inspecting = false
+            status = L(
+                "Inspection complete. No commands were sent; diagnostic details were saved.",
+                "Inspección completa. No se enviaron comandos; se guardaron los detalles de diagnóstico.")
+            record(status)
+            return
         }
         guard !ready else { return }
         if let driver,
