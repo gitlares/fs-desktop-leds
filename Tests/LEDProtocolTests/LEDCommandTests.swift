@@ -64,7 +64,20 @@ final class LEDCommandTests: XCTestCase {
 
     func testCatalogDetectsOnlyCompatibleLight() {
         XCTAssertNotNil(DriverCatalog.shared.driver(forAdvertisedName: "ELK-BLEDOM"))
+        XCTAssertNotNil(DriverCatalog.shared.driver(forAdvertisedName: "BJ_LED_M"))
         XCTAssertNil(DriverCatalog.shared.driver(forAdvertisedName: "MELK-OA10"))
+    }
+
+    func testBojiaDriverUsesDocumentedMohuanPackets() {
+        let driver = BJLEDDriver()
+        XCTAssertEqual(
+            Array(driver.packet(for: .power(true))), [0x69, 0x96, 0x02, 0x01, 0x01])
+        XCTAssertEqual(
+            Array(driver.packet(for: .power(false))), [0x69, 0x96, 0x02, 0x01, 0x00])
+        XCTAssertEqual(
+            Array(driver.packet(for: .color(255, 128, 0))), [0x69, 0x96, 0x05, 0x02, 255, 128, 0])
+        XCTAssertEqual(driver.writeCharacteristicUUID.uuidString, "0000EE02-0000-1000-8000-00805F9B34FB")
+        XCTAssertEqual(driver.brightnessStrategy, .scaleColor)
     }
 
     func testRapidChangesStayBoundedAndKeepLatestValue() {

@@ -2,6 +2,8 @@
 
 ELK-BLEDOM command layouts are adapted from the MIT-licensed model definitions in [dave-code-ruiz/elkbledom](https://github.com/dave-code-ruiz/elkbledom/blob/main/custom_components/elkbledom/models.json), consulted September 15, 2026. No Home Assistant runtime code is included.
 
+BJ_LED_M / MohuanLED command layouts are adapted from [Walkercito/MohuanLED-Bluetooth_LED](https://github.com/Walkercito/MohuanLED-Bluetooth_LED), consulted September 17, 2026. The source is MIT-licensed; no Python runtime code is included.
+
 ## elkbledom license
 
 MIT License

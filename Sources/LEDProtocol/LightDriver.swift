@@ -7,6 +7,7 @@ public protocol LightDriver: Sendable {
     var displayName: String { get }
     var writeCharacteristicUUID: UUID { get }
     var diagnosticEffects: [LEDEffect] { get }
+    var brightnessStrategy: BrightnessStrategy { get }
 
     /// Determines whether an advertised name is a candidate for this driver.
     func matches(advertisedName: String) -> Bool
@@ -17,6 +18,14 @@ public protocol LightDriver: Sendable {
 
 extension LightDriver {
     public var diagnosticEffects: [LEDEffect] { [] }
+    public var brightnessStrategy: BrightnessStrategy { .separateCommand }
+}
+
+/// Some controllers have a dedicated brightness packet; others encode
+/// brightness by scaling RGB values in the color packet.
+public enum BrightnessStrategy: Equatable, Sendable {
+    case separateCommand
+    case scaleColor
 }
 
 public enum ELKBLEDOMVariant: String, CaseIterable, Sendable {
@@ -67,11 +76,41 @@ public struct ELKBLEDOMDriver: LightDriver, Sendable {
     }
 }
 
+/// MohuanLED / Bojia controllers advertising as BJ_LED_M.
+/// Packet layouts are adapted from Walkercito/MohuanLED-Bluetooth_LED (MIT).
+public struct BJLEDDriver: LightDriver, Sendable {
+    public init() {}
+
+    public var id: String { "bj-led-m" }
+    public var displayName: String { "BJ_LED_M (MohuanLED)" }
+    public var writeCharacteristicUUID: UUID {
+        UUID(uuidString: "0000EE02-0000-1000-8000-00805F9B34FB")!
+    }
+    public var brightnessStrategy: BrightnessStrategy { .scaleColor }
+
+    public func matches(advertisedName: String) -> Bool {
+        advertisedName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased() == "BJ_LED_M"
+    }
+
+    public func packet(for command: LEDCommand) -> Data {
+        switch command {
+        case .power(let on): return Data([0x69, 0x96, 0x02, 0x01, on ? 0x01 : 0x00])
+        case .color(let red, let green, let blue): return Data([0x69, 0x96, 0x05, 0x02, red, green, blue])
+        case .brightness, .effect, .effectSpeed:
+            // Brightness is applied to RGB in BluetoothController. The
+            // reference protocol does not document packets for the others.
+            return Data()
+        }
+    }
+}
+
 /// Register each supported controller family here. Adding one does not change
 /// SwiftUI or the CoreBluetooth connection lifecycle.
 public struct DriverCatalog: Sendable {
     public static let shared = DriverCatalog()
-    private let detectorDrivers: [any LightDriver] = [ELKBLEDOMDriver()]
+    private let detectorDrivers: [any LightDriver] = [ELKBLEDOMDriver(), BJLEDDriver()]
 
     public init() {}
 

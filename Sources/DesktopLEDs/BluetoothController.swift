@@ -153,6 +153,8 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     private var sendWork: DispatchWorkItem?
     private var writeTimeout: DispatchWorkItem?
     private var buffer = CommandBuffer()
+    private var requestedBrightness = 100
+    private var sourceColor: LEDCommand?
     private var awaitingResponse = false
     private var lastWrite = Date.distantPast
     private var autoTarget: UUID?
@@ -342,6 +344,8 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         sendWork = nil
         writeTimeout?.cancel()
         buffer.clear()
+        requestedBrightness = 100
+        sourceColor = nil
         awaitingResponse = false
         ready = false
         connecting = false
@@ -407,8 +411,24 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
     func send(_ command: LEDCommand) {
         if case .power(false) = command { stopProbe() }
         guard ready else { return }
-        buffer.append(command)
+        if case .brightness(let percent) = command, driver?.brightnessStrategy == .scaleColor {
+            requestedBrightness = min(100, max(0, percent))
+            if let sourceColor { buffer.append(scaledColor(sourceColor)) }
+        } else if case .color = command, driver?.brightnessStrategy == .scaleColor {
+            sourceColor = command
+            buffer.append(scaledColor(command))
+        } else {
+            buffer.append(command)
+        }
         scheduleSend()
+    }
+
+    private func scaledColor(_ command: LEDCommand) -> LEDCommand {
+        guard case let .color(red, green, blue) = command else { return command }
+        let scale = Double(requestedBrightness) / 100
+        return .color(
+            UInt8((Double(red) * scale).rounded()), UInt8((Double(green) * scale).rounded()),
+            UInt8((Double(blue) * scale).rounded()))
     }
 
     private func scheduleSend() {
@@ -432,6 +452,10 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
         guard let command = buffer.pop() else { return }
         lastWrite = Date()
         let packet = driver.packet(for: command)
+        guard !packet.isEmpty else {
+            scheduleSend()
+            return
+        }
         peripheral.writeValue(packet, for: characteristic, type: type)
         if probing {
             record(
