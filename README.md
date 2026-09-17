@@ -2,8 +2,8 @@
 
 **A little light for your workspace.**
 
-Control ELK-BLEDOM desk lights from the macOS menu bar. Pick a color or scene,
-follow your screen, or turn music into light.
+Control compatible **ELK-BLEDOM Bluetooth LED strips and desk lights** from the
+macOS menu bar. Pick a color or scene, follow your screen, or turn music into light.
 
 [Download the beta](https://github.com/gitlares/fs-desktop-leds/releases/tag/v0.1.0-beta.1)
 · [Website](https://gitlares.github.io/fs-desktop-leds/)
@@ -12,9 +12,9 @@ follow your screen, or turn music into light.
 
 ## Why I built it
 
-I bought a desk a year ago, and its LED lights could only be controlled from my
-phone. I'm not a gamer. I just wanted to add a nice touch to the place where I
-work, without reaching for another device every time.
+I bought a desk a year ago, and its ELK-BLEDOM LED strip could only be controlled
+from my phone. I'm not a gamer. I just wanted to add a nice touch to the place
+where I work, without reaching for another device every time.
 
 FS Desktop LEDs puts those controls in the Mac's menu bar. FS stands for
 **Fast and Simple**. That's the idea I want to keep.
@@ -103,9 +103,14 @@ Menu labels follow the macOS app language. The paths above use English labels.
 
 ## Compatibility and beta limitations
 
+- **Supported controller family:** ELK-BLEDOM Bluetooth LED controllers. The app
+  can control compatible standalone strips, desk lights and other products that
+  use that chipset.
 - **Tested hardware:** ELK-BLEDOM, alternate protocol. Whole-strip colors,
   brightness and software alternation were confirmed on the development desk.
-- **Other hardware:** unverified. A matching Bluetooth name does not prove compatibility.
+- **Other hardware:** unverified. A matching Bluetooth name does not prove a
+  particular protocol variant will work; report your results so we can expand
+  verified compatibility.
 - **LED addressing:** effects change the whole strip together. Individual pixels
   and independent segments are not supported by this release.
 - **Firmware effects:** the fade commands we tested did not animate the test
