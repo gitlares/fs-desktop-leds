@@ -564,7 +564,12 @@ final class BluetoothController: NSObject, ObservableObject, CBCentralManagerDel
                     "  Característica \(item.uuid.uuidString), propiedades 0x\(String(item.properties.rawValue, radix: 16))"
                 ))
             // Standard Device Information only. No arbitrary vendor reads or writes.
-            if service.uuid == CBUUID(string: "180A"), item.properties.contains(.read) {
+            // For an explicitly requested inspection, read the values the
+            // controller itself marks readable. This obtains protocol/status
+            // evidence without writing or subscribing to the device.
+            if item.properties.contains(.read),
+                inspecting || service.uuid == CBUUID(string: "180A")
+            {
                 device.readValue(for: item)
             }
             if !inspecting, item.uuid == CBUUID(string: "FFF4"), item.properties.contains(.notify) {
